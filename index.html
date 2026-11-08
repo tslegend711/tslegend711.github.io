@@ -206,8 +206,9 @@ nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;padding:6px var(--gut
 nav.tabs .in{display:flex;max-width:760px;margin:0 auto}
 nav.tabs button{flex:1;border:0;background:none;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 0 4px;font-size:.7rem;font-weight:700;position:relative;min-width:0}
 nav.tabs button .pill{padding:4px 16px;transition:background .2s}
-nav.tabs button[aria-current="page"]{color:var(--ink)}
-nav.tabs button[aria-current="page"] .pill{background:var(--gold-grad);color:#0B1020}
+nav.tabs button[aria-current="page"]{color:var(--gold-ink)}
+nav.tabs button[aria-current="page"] .pill{color:var(--gold)}
+nav.tabs button[aria-current="page"] .pill svg{stroke-width:2.2}
 nav.tabs .dot{position:absolute;top:4px;right:calc(50% - 22px);min-width:16px;height:16px;padding:0 4px;background:var(--neg);color:#fff;font-size:.62rem;display:grid;place-items:center}
 .fab{position:fixed;z-index:29;right:max(16px,calc(50% - 364px),env(safe-area-inset-right,0px));bottom:calc(84px + env(safe-area-inset-bottom,0px));width:58px;height:58px;border:0;background:var(--gold-grad);color:#0B1020;display:grid;place-items:center;box-shadow:0 10px 24px rgba(160,132,41,.38)}
 .fab svg{width:26px;height:26px;stroke-width:2.4}
