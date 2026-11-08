@@ -14,6 +14,17 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 /** Ponte tra il codice web e Android: dati dei widget e colore delle barre di sistema. */
 @CapacitorPlugin(name = "LydiaWidget")
 public class LydiaWidgetPlugin extends Plugin {
+    static volatile int topInsetPx = 0;
+
+    /** Altezza della barra di stato in pixel CSS, per far continuare la barra dell'app sotto l'ora. */
+    @PluginMethod
+    public void getInsets(PluginCall call) {
+        float d = getContext().getResources().getDisplayMetrics().density;
+        com.getcapacitor.JSObject r = new com.getcapacitor.JSObject();
+        r.put("top", d > 0 ? topInsetPx / d : 0);
+        call.resolve(r);
+    }
+
     @PluginMethod
     public void setData(PluginCall call) {
         String data = call.getString("data", "");
@@ -39,7 +50,7 @@ public class LydiaWidgetPlugin extends Plugin {
                 int c = Color.parseColor(col);
                 Window w = a.getWindow();
                 w.getDecorView().setBackgroundColor(c);
-                w.setStatusBarColor(c);
+                w.setStatusBarColor(Color.TRANSPARENT);
                 w.setNavigationBarColor(c);
                 WindowInsetsControllerCompat ic = WindowCompat.getInsetsController(w, w.getDecorView());
                 ic.setAppearanceLightStatusBars(light);

@@ -13,12 +13,15 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(LydiaWidgetPlugin.class);
         super.onCreate(savedInstanceState);
         // Barre di sistema e tastiera: il contenuto resta sempre visibile, anche con Android 15 a schermo intero.
+        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
         View root = findViewById(android.R.id.content);
         if (root != null) {
             ViewCompat.setOnApplyWindowInsetsListener(root, (v, insets) -> {
                 Insets bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout());
                 Insets ime = insets.getInsets(WindowInsetsCompat.Type.ime());
-                v.setPadding(bars.left, bars.top, bars.right, Math.max(ime.bottom, bars.bottom));
+                // in alto niente margine: la barra dell'app continua sotto l'ora e le notifiche
+                LydiaWidgetPlugin.topInsetPx = bars.top;
+                v.setPadding(bars.left, 0, bars.right, Math.max(ime.bottom, bars.bottom));
                 return WindowInsetsCompat.CONSUMED;
             });
         }
