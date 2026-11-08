@@ -28,10 +28,28 @@ public class LydiaInvWidgetProvider extends AppWidgetProvider {
     static final int[] PRICE = {R.id.iv_p1, R.id.iv_p2, R.id.iv_p3, R.id.iv_p4};
     static final int[] GPCT = {R.id.iv_q1, R.id.iv_q2, R.id.iv_q3, R.id.iv_q4};
 
+    static final String ACTION_REFRESH = "io.github.tslegend711.lydia.REFRESH";
+    static volatile boolean busy = false;
+
+    @Override
+    public void onReceive(Context c, android.content.Intent intent) {
+        if (intent != null && ACTION_REFRESH.equals(intent.getAction())) {
+            busy = true;
+            LydiaWidgetProvider.updateAll(c);
+            fetch(c);
+            return;
+        }
+        super.onReceive(c, intent);
+    }
+
     @Override
     public void onUpdate(Context context, AppWidgetManager manager, int[] ids) {
         for (int id : ids) manager.updateAppWidget(id, build(context));
         // ogni mezz'ora: prezzi nuovi da Yahoo anche con l'app chiusa
+        fetch(context);
+    }
+
+    void fetch(Context context) {
         final Context app = context.getApplicationContext();
         final PendingResult pr = goAsync();
         new Thread(() -> {
@@ -42,6 +60,8 @@ public class LydiaInvWidgetProvider extends AppWidgetProvider {
                 }
             } catch (Exception ignored) {
             } finally {
+                busy = false;
+                LydiaWidgetProvider.updateAll(app);
                 pr.finish();
             }
         }).start();
@@ -175,6 +195,9 @@ public class LydiaInvWidgetProvider extends AppWidgetProvider {
         v.setViewVisibility(R.id.iv_eye, pv ? View.VISIBLE : View.GONE);
         v.setImageViewResource(R.id.iv_eye, hid ? R.drawable.lydia_ic_eye : R.drawable.lydia_ic_eye_off);
         v.setOnClickPendingIntent(R.id.iv_eye, LydiaWidgetProvider.action(c, LydiaWidgetProvider.ACTION_REVEAL, 30));
+        android.content.Intent ri = new android.content.Intent(ACTION_REFRESH);
+        ri.setClass(c, LydiaInvWidgetProvider.class);
+        v.setOnClickPendingIntent(R.id.iv_ref, android.app.PendingIntent.getBroadcast(c, 32, ri, android.app.PendingIntent.FLAG_UPDATE_CURRENT | android.app.PendingIntent.FLAG_IMMUTABLE));
         JSONArray rows = j != null ? j.optJSONArray("rows") : null;
         if (j == null || rows == null || rows.length() == 0) {
             v.setTextViewText(R.id.iv_total, j == null ? "Apri Lydia" : "Nessun titolo");
@@ -188,7 +211,7 @@ public class LydiaInvWidgetProvider extends AppWidgetProvider {
         v.setTextViewText(R.id.iv_total, hid ? "•••••• €" : j.optString("total", ""));
         v.setTextViewText(R.id.iv_gain, hid ? j.optString("gainp", "") : j.optString("gain", ""));
         v.setTextColor(R.id.iv_gain, color(c, sg));
-        v.setTextViewText(R.id.iv_upd, j.optString("upd", ""));
+        v.setTextViewText(R.id.iv_upd, busy ? "aggiorno…" : j.optString("upd", ""));
         for (int i = 0; i < ROW.length; i++) {
             JSONObject r = rows.optJSONObject(i);
             if (r == null) {
