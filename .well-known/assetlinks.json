@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "io.github.tslegend711.twa",
+        "sha256_cert_fingerprints": ["A8:16:F5:3D:6C:E3:C4:AD:5C:C7:EF:AE:58:6D:29:7B:BF:BD:C1:57:CA:CA:20:95:1A:D8:6C:A5:A9:A0:CC:A0"]
+      }
+    }]

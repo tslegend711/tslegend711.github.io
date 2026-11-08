@@ -1,1 +1,0 @@
-Metti qui il file assetlinks.json generato da PWABuilder.
