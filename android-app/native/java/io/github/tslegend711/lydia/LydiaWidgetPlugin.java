@@ -165,4 +165,64 @@ public class LydiaWidgetPlugin extends Plugin {
             call.reject("Immagine non leggibile");
         }
     }
+
+    /** PDF senza testo (scansioni o testo disegnato): disegno le pagine e leggo il testo come da una foto. */
+    @PluginMethod
+    public void ocrPdf(final PluginCall call) {
+        final String b64 = call.getString("data", "");
+        new Thread(() -> {
+            java.io.File tmp = null;
+            try {
+                byte[] bytes = android.util.Base64.decode(b64, android.util.Base64.DEFAULT);
+                tmp = java.io.File.createTempFile("lydia", ".pdf", getContext().getCacheDir());
+                java.io.FileOutputStream fo = new java.io.FileOutputStream(tmp);
+                fo.write(bytes);
+                fo.close();
+                android.os.ParcelFileDescriptor fd = android.os.ParcelFileDescriptor.open(tmp, android.os.ParcelFileDescriptor.MODE_READ_ONLY);
+                android.graphics.pdf.PdfRenderer r = new android.graphics.pdf.PdfRenderer(fd);
+                int n = Math.min(r.getPageCount(), 4);
+                org.json.JSONArray pages = new org.json.JSONArray();
+                com.google.mlkit.vision.text.TextRecognizer rec = com.google.mlkit.vision.text.TextRecognition.getClient(com.google.mlkit.vision.text.latin.TextRecognizerOptions.DEFAULT_OPTIONS);
+                for (int i = 0; i < n; i++) {
+                    android.graphics.pdf.PdfRenderer.Page pg = r.openPage(i);
+                    float k = 2000f / Math.max(pg.getWidth(), pg.getHeight());
+                    int w = Math.max(1, Math.round(pg.getWidth() * k)), h = Math.max(1, Math.round(pg.getHeight() * k));
+                    android.graphics.Bitmap bmp = android.graphics.Bitmap.createBitmap(w, h, android.graphics.Bitmap.Config.ARGB_8888);
+                    bmp.eraseColor(android.graphics.Color.WHITE);
+                    pg.render(bmp, null, null, android.graphics.pdf.PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY);
+                    pg.close();
+                    com.google.mlkit.vision.text.Text text = com.google.android.gms.tasks.Tasks.await(rec.process(com.google.mlkit.vision.common.InputImage.fromBitmap(bmp, 0)));
+                    org.json.JSONArray words = new org.json.JSONArray();
+                    for (com.google.mlkit.vision.text.Text.TextBlock b : text.getTextBlocks())
+                        for (com.google.mlkit.vision.text.Text.Line l : b.getLines())
+                            for (com.google.mlkit.vision.text.Text.Element e : l.getElements()) {
+                                android.graphics.Rect rc = e.getBoundingBox();
+                                if (rc == null) continue;
+                                org.json.JSONObject o = new org.json.JSONObject();
+                                o.put("t", e.getText());
+                                o.put("x", rc.left);
+                                o.put("y", rc.top);
+                                o.put("w", rc.width());
+                                o.put("h", rc.height());
+                                words.put(o);
+                            }
+                    org.json.JSONObject po = new org.json.JSONObject();
+                    po.put("w", w);
+                    po.put("h", h);
+                    po.put("words", words);
+                    pages.put(po);
+                    bmp.recycle();
+                }
+                r.close();
+                fd.close();
+                com.getcapacitor.JSObject res = new com.getcapacitor.JSObject();
+                res.put("pages", pages.toString());
+                call.resolve(res);
+            } catch (Exception e) {
+                call.reject("Non riesco a leggere questo PDF");
+            } finally {
+                if (tmp != null) tmp.delete();
+            }
+        }).start();
+    }
 }
