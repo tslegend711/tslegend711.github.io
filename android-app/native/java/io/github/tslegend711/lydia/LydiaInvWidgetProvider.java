@@ -24,6 +24,9 @@ public class LydiaInvWidgetProvider extends AppWidgetProvider {
     static final int[] NAME = {R.id.iv_n1, R.id.iv_n2, R.id.iv_n3, R.id.iv_n4};
     static final int[] DAY = {R.id.iv_d1, R.id.iv_d2, R.id.iv_d3, R.id.iv_d4};
     static final int[] GAIN = {R.id.iv_g1, R.id.iv_g2, R.id.iv_g3, R.id.iv_g4};
+    static final int[] SUB = {R.id.iv_m1, R.id.iv_m2, R.id.iv_m3, R.id.iv_m4};
+    static final int[] PRICE = {R.id.iv_p1, R.id.iv_p2, R.id.iv_p3, R.id.iv_p4};
+    static final int[] GPCT = {R.id.iv_q1, R.id.iv_q2, R.id.iv_q3, R.id.iv_q4};
 
     @Override
     public void onUpdate(Context context, AppWidgetManager manager, int[] ids) {
@@ -51,6 +54,13 @@ public class LydiaInvWidgetProvider extends AppWidgetProvider {
     static String eur(double v) {
         NumberFormat f = NumberFormat.getIntegerInstance(Locale.ITALY);
         return f.format(Math.round(Math.abs(v))) + " €";
+    }
+
+    static String money(double v) {
+        NumberFormat f = NumberFormat.getNumberInstance(Locale.ITALY);
+        f.setMinimumFractionDigits(2);
+        f.setMaximumFractionDigits(2);
+        return f.format(v) + " €";
     }
 
     static String signed(double v) {
@@ -90,6 +100,7 @@ public class LydiaInvWidgetProvider extends AppWidgetProvider {
             }
             any = true;
             double v = q * pp[0], g = v - cost;
+            r.put("p", money(pp[0]));
             tv += v;
             tc += cost;
             if (pp[1] > 0) {
@@ -186,8 +197,12 @@ public class LydiaInvWidgetProvider extends AppWidgetProvider {
             String d = r.optString("d", "");
             v.setTextViewText(DAY[i], d.length() > 0 ? d : "–");
             v.setTextColor(DAY[i], color(c, r.optInt("ds", 0)));
+            v.setTextViewText(SUB[i], r.optString("nm", ""));
+            v.setTextViewText(PRICE[i], r.optString("p", "–"));
             v.setTextViewText(GAIN[i], hid ? r.optString("gp", "") : r.optString("g", ""));
             v.setTextColor(GAIN[i], color(c, r.optInt("s", 0)));
+            v.setTextViewText(GPCT[i], hid ? "" : r.optString("gp", ""));
+            v.setTextColor(GPCT[i], color(c, r.optInt("s", 0)));
         }
         return v;
     }
