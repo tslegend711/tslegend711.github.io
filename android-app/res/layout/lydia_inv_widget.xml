@@ -20,7 +20,7 @@
     <TextView android:id="@+id/iv_total" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="—" android:textColor="@color/lydia_w_text" android:textSize="26sp" android:fontFamily="sans-serif-medium" android:maxLines="1" />
     <TextView android:id="@+id/iv_gain" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="@color/lydia_w_muted" android:textSize="13sp" android:fontFamily="sans-serif-medium" android:maxLines="1" />
 
-    <View android:layout_width="match_parent" android:layout_height="1dp" android:layout_marginTop="10dp" android:background="@color/lydia_w_line" />
+    <TextView android:layout_width="match_parent" android:layout_height="1dp" android:layout_marginTop="10dp" android:background="@color/lydia_w_line" />
 
     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:orientation="horizontal">
         <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Titolo" android:textColor="@color/lydia_w_muted" android:textSize="10sp" />
