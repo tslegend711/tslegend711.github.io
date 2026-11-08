@@ -326,6 +326,7 @@ html,body{height:100%;overflow:hidden;overscroll-behavior:none}
 main#scroller{position:fixed;inset:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding-top:calc(56px + env(safe-area-inset-top,0px))}
 :root.native main#scroller{padding-top:calc(56px + var(--sat,0px))}
 .topbar{position:fixed;left:0;right:0}
+.sel,.filters select{border-radius:var(--r-sm)}
 </style>
 </head>
 <body>
@@ -614,9 +615,9 @@ function renderHome(){const main=$('#main');
 
 /* ---------- MOVIMENTI ---------- */
 function renderMov(){const main=$('#main');
- main.innerHTML=bigTitle(...TITLES.movimenti);
- if(!S.movs.length){main.innerHTML+=`<div class="glass empty"><p>Nessun movimento registrato.</p><div class="actions"><button class="btn ghost" id="goimp">Importa CSV</button><button class="btn" id="goadd">Aggiungi</button></div></div>`;$('#goimp').onclick=settingsSheet;$('#goadd').onclick=()=>movForm();return}
- const months=[...new Set(S.movs.map(m=>m.date.slice(0,7)))].sort().reverse();if(mf.m!=='all'&&!months.includes(mf.m))mf.m='all';
+ main.innerHTML=bigTitle(...TITLES.movimenti)+'<button class="homesearch" id="mvimp" type="button"><svg class="i" viewBox="0 0 24 24"><path d="M14 3H7v18h10V6z"/><path d="M14 3v3h3M10 12h4M10 16h4"/></svg><span>Carica estratto conto <span class="note">· banca o carta</span></span></button>';
+ if(!S.movs.length){main.innerHTML+=`<div class="glass empty"><p>Nessun movimento registrato.</p><div class="actions"><button class="btn ghost" id="goimp">Importa un file</button><button class="btn" id="goadd">Aggiungi</button></div></div>`;$('#goimp').onclick=()=>pickFiles('',importAny,true);$('#goadd').onclick=()=>movForm();$('#mvimp').onclick=()=>pickFiles('.pdf,application/pdf',importPayslips,true);return}
+ const months=[...new Set(S.movs.map(m=>m.date.slice(0,7)))].sort().reverse();setTimeout(()=>{if($('#mvimp'))$('#mvimp').onclick=()=>pickFiles('.pdf,application/pdf',importPayslips,true)},0);if(mf.m!=='all'&&!months.includes(mf.m))mf.m='all';
  const cats=[...new Set(S.movs.map(m=>m.cat))].sort((a,b)=>a.localeCompare(b,'it'));
  main.innerHTML+=`<input class="search" id="q" type="search" placeholder="Cerca descrizione o categoria" value="${esc(mf.q)}" aria-label="Cerca">
  <div class="filters"><div class="seg" role="group" aria-label="Tipo">${[['all','Tutti'],['out','Spese'],['in','Entrate'],['tr','Giroconti'],['inv','Investiti']].map(([k,l])=>`<button data-t="${k}" aria-pressed="${mf.t===k}">${l}</button>`).join('')}</div>
@@ -952,7 +953,7 @@ async function importPayslips(files){if(!files.length)return;if(!S.accounts.leng
  busy(true,files.length>1?`Leggo ${files.length} PDF…`:'Leggo il PDF…');const res=[],stmts=[];const withTO=(pr,ms)=>Promise.race([pr,new Promise((_,rej)=>setTimeout(()=>rej(new Error('Il PDF è troppo complesso da leggere')),ms))]);
  for(const f of files){try{if(f.size>20*1024*1024)throw new Error('File troppo grande');const L=await withTO(pdfLines(await f.arrayBuffer()),20000);if(!L.length)throw new Error('Nel PDF non c\'è testo: forse è una foto o una scansione');
    if(isBankList(L)){const st=parseBankList(L);if(!st.rows.length)throw new Error('Non trovo movimenti in questo estratto');stmts.push(st);continue}if(isCardStatement(L)){const st=parseCardStatement(L);if(!st.last||st.due==null)throw new Error('Non riesco a leggere questo estratto conto');stmts.push(st);continue}const r=parsePayslip(L,f.name);if(!r.found.netto)throw new Error('Non trovo il netto in busta');res.push({f,...r})}catch(e){res.push({f,err:e.message||'PDF non leggibile'})}}
- busy(false);if(stmts.length){stmts.sort((a,b)=>(a.kind==='bank')-(b.kind==='bank')||((a.close||a.to)<(b.close||b.to)?-1:1));stmtQueue=stmts;const others=res.filter(r=>r.err);if(others.length)toast(others[0].err,5000);if(!res.filter(r=>!r.err).length){nextStatement();return}setTimeout(()=>{if(!$('#ov').classList.contains('open'))nextStatement()},2500)}const ok=res.filter(r=>!r.err);if(!res.length)return;
+ busy(false);if(stmts.length&&!res.some(r=>!r.err))toast(stmts.length>1?'Sono estratti conto, non buste paga: li apro come estratti':'È un estratto conto, non una busta paga: lo apro come estratto',3500);if(stmts.length){stmts.sort((a,b)=>(a.kind==='bank')-(b.kind==='bank')||((a.close||a.to)<(b.close||b.to)?-1:1));stmtQueue=stmts;const others=res.filter(r=>r.err);if(others.length)toast(others[0].err,5000);if(!res.filter(r=>!r.err).length){nextStatement();return}setTimeout(()=>{if(!$('#ov').classList.contains('open'))nextStatement()},2500)}const ok=res.filter(r=>!r.err);if(!res.length)return;
  if(files.length===1){if(ok.length)payslipForm(null,ok[0]);else toast(res[0].err+'. Puoi inserirla a mano.',6000);return}
  openSheet(`<h3>Buste paga dai PDF</h3><p class="note" style="margin-top:-6px">Controlla i numeri. Potrai sempre correggerli toccando la busta paga.</p>
  <div id="pdfl" style="margin-top:10px">${res.map((r,i)=>r.err?`<div class="pdfrow"><span class="neg" style="font-weight:800">!</span><div><b>${esc(r.f.name)}</b><div class="note">${esc(r.err)}</div></div></div>`:
@@ -1319,7 +1320,7 @@ function fixBalSheet(a){const cur=Math.round(accBal(a)*100)/100;openSheet(`<h3>C
 
 /* ---------- privacy, backup, novità ---------- */
 const APP_VERSION='1.7.2';
-const CHANGELOG=[['1.7.2','8 novembre 2026',["Barra in alto, barra in basso e pulsante + restano fermi mentre scorri","Pulsante + più trasparente","App Android: sfondo anche sotto la barra delle gesture; widget ridisegnati"]],
+const CHANGELOG=[['1.7.2','8 novembre 2026',["Barra in alto, barra in basso e pulsante + restano fermi mentre scorri","Movimenti: pulsante per caricare l'estratto conto della banca o della carta","Pulsante + più trasparente","App Android: sfondo anche sotto la barra delle gesture; widget ridisegnati"]],
  ['1.7.1','8 novembre 2026',["Tema scuro: sfondo quasi nero con una luce oro in alto, senza sfumature colorate","App Android: la barra in alto continua sotto l'ora e le notifiche, e lo sfondo continua sotto la barra delle gesture"]],
  ['1.7.0','8 novembre 2026',["Estratto conto della banca: ritrova i movimenti che hai già registrato, ne corregge la data con quella della banca e aggiunge quelli che mancano","Ti mostra anche le spese che hai in Lydia ma non nell'estratto, e confronta il saldo","I movimenti verificati con la banca hanno una spunta verde"]],
  ['1.6.0','8 novembre 2026',["Estratti conto delle carte: carichi il PDF e l'addebito della carta si divide nelle singole spese, ognuna con la sua categoria","Più carte, ognuna con il suo conto e il tipo di pagamento (saldo a fine mese o revolving)","Se l'addebito non è ancora arrivato, l'estratto resta in attesa e si collega da solo","Le categorie che correggi vengono ricordate per i mesi successivi"]],
