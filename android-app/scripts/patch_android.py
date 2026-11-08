@@ -38,4 +38,10 @@ if 'LydiaWidgetProvider' not in s:
     if 'windowSoftInputMode' not in s:
         s = s.replace('android:name=".MainActivity"', 'android:name=".MainActivity"\n            android:windowSoftInputMode="adjustResize"', 1)
     m.write_text(s, encoding='utf-8')
+# impronta per sbloccare l'app
+g = root / 'android' / 'app' / 'build.gradle'
+gs = g.read_text(encoding='utf-8')
+if 'androidx.biometric' not in gs:
+    gs = gs.replace('dependencies {', 'dependencies {\n    implementation "androidx.biometric:biometric:1.1.0"', 1)
+    g.write_text(gs, encoding='utf-8')
 print('progetto Android aggiornato:', m)

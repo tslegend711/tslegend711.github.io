@@ -8,5 +8,10 @@
     "captureInput": false,
     "webContentsDebuggingEnabled": false,
     "adjustMarginsForEdgeToEdge": "disable"
+  },
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": true
+    }
   }
 }

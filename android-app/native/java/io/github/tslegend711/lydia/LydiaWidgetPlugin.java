@@ -4,7 +4,11 @@ import android.app.Activity;
 import android.content.Context;
 import android.graphics.Color;
 import android.view.Window;
+import androidx.biometric.BiometricManager;
+import androidx.biometric.BiometricPrompt;
+import androidx.core.content.ContextCompat;
 import androidx.core.view.WindowCompat;
+import androidx.fragment.app.FragmentActivity;
 import androidx.core.view.WindowInsetsControllerCompat;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
@@ -60,6 +64,59 @@ public class LydiaWidgetPlugin extends Plugin {
                 ic.setAppearanceLightNavigationBars(light);
             } catch (Exception ignored) { }
             call.resolve();
+        });
+    }
+
+    /** C'è un'impronta (o il volto) registrata sul telefono? */
+    @PluginMethod
+    public void bioAvailable(PluginCall call) {
+        com.getcapacitor.JSObject r = new com.getcapacitor.JSObject();
+        boolean ok = false;
+        try {
+            ok = BiometricManager.from(getContext()).canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_WEAK) == BiometricManager.BIOMETRIC_SUCCESS;
+        } catch (Exception ignored) { }
+        r.put("ok", ok);
+        call.resolve(r);
+    }
+
+    /** Chiede l'impronta per sbloccare Lydia. */
+    @PluginMethod
+    public void biometric(final PluginCall call) {
+        final Activity a = getActivity();
+        if (!(a instanceof FragmentActivity)) {
+            com.getcapacitor.JSObject r = new com.getcapacitor.JSObject();
+            r.put("ok", false);
+            call.resolve(r);
+            return;
+        }
+        final String title = call.getString("title", "Sblocca Lydia");
+        final String sub = call.getString("subtitle", "");
+        a.runOnUiThread(() -> {
+            try {
+                BiometricPrompt.PromptInfo info = new BiometricPrompt.PromptInfo.Builder()
+                        .setTitle(title).setSubtitle(sub).setNegativeButtonText("Usa il PIN")
+                        .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_WEAK).build();
+                BiometricPrompt p = new BiometricPrompt((FragmentActivity) a, ContextCompat.getMainExecutor(a), new BiometricPrompt.AuthenticationCallback() {
+                    @Override
+                    public void onAuthenticationSucceeded(BiometricPrompt.AuthenticationResult result) {
+                        com.getcapacitor.JSObject r = new com.getcapacitor.JSObject();
+                        r.put("ok", true);
+                        call.resolve(r);
+                    }
+
+                    @Override
+                    public void onAuthenticationError(int code, CharSequence msg) {
+                        com.getcapacitor.JSObject r = new com.getcapacitor.JSObject();
+                        r.put("ok", false);
+                        call.resolve(r);
+                    }
+                });
+                p.authenticate(info);
+            } catch (Exception e) {
+                com.getcapacitor.JSObject r = new com.getcapacitor.JSObject();
+                r.put("ok", false);
+                call.resolve(r);
+            }
         });
     }
 }
