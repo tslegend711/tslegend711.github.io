@@ -1,48 +1,51 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Widget Investimenti: totale e guadagno, poi ogni titolo con andamento di oggi e guadagno in euro. -->
+<!-- Widget Investimenti: valore e guadagno in alto, poi un titolo per riga con oggi e guadagno. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/iv_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="@drawable/lydia_widget_bg"
-    android:paddingStart="14dp"
-    android:paddingEnd="14dp"
-    android:paddingTop="10dp"
-    android:paddingBottom="10dp">
+    android:paddingStart="18dp"
+    android:paddingEnd="18dp"
+    android:paddingTop="14dp"
+    android:paddingBottom="12dp">
 
     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
-        <ImageView android:layout_width="16dp" android:layout_height="16dp" android:src="@mipmap/ic_launcher_round" android:contentDescription="Lydia" />
-        <TextView android:id="@+id/iv_total" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="6dp" android:text="Investimenti" android:textColor="@color/lydia_w_text" android:textSize="17sp" android:textStyle="bold" android:maxLines="1" />
-        <TextView android:id="@+id/iv_gain" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="6dp" android:paddingStart="8dp" android:paddingEnd="8dp" android:paddingTop="2dp" android:paddingBottom="2dp" android:background="@drawable/lydia_chip_pos" android:textColor="@color/lydia_w_muted" android:textSize="12sp" android:textStyle="bold" android:maxLines="1" />
+        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Investimenti" android:textColor="@color/lydia_w_muted" android:textSize="12sp" android:letterSpacing="0.02" />
+        <TextView android:id="@+id/iv_upd" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="@color/lydia_w_muted" android:textSize="11sp" android:maxLines="1" />
+        <ImageView android:id="@+id/iv_eye" android:layout_width="28dp" android:layout_height="28dp" android:layout_marginStart="8dp" android:background="@drawable/lydia_eye_bg" android:padding="7dp" android:src="@drawable/lydia_ic_eye" android:visibility="gone" android:contentDescription="Mostra gli importi" />
     </LinearLayout>
 
-    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:orientation="horizontal">
-        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Titolo" android:textColor="@color/lydia_w_muted" android:textSize="11sp" />
-        <TextView android:layout_width="64dp" android:layout_height="wrap_content" android:gravity="end" android:text="Oggi" android:textColor="@color/lydia_w_muted" android:textSize="11sp" />
-        <TextView android:layout_width="84dp" android:layout_height="wrap_content" android:gravity="end" android:text="Guadagno" android:textColor="@color/lydia_w_muted" android:textSize="11sp" />
+    <TextView android:id="@+id/iv_total" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="—" android:textColor="@color/lydia_w_text" android:textSize="26sp" android:fontFamily="sans-serif-medium" android:maxLines="1" />
+    <TextView android:id="@+id/iv_gain" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="@color/lydia_w_muted" android:textSize="13sp" android:fontFamily="sans-serif-medium" android:maxLines="1" />
+
+    <View android:layout_width="match_parent" android:layout_height="1dp" android:layout_marginTop="10dp" android:background="@color/lydia_w_line" />
+
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:orientation="horizontal">
+        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Titolo" android:textColor="@color/lydia_w_muted" android:textSize="10sp" />
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:minWidth="62dp" android:gravity="end" android:text="Oggi" android:textColor="@color/lydia_w_muted" android:textSize="10sp" />
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:minWidth="78dp" android:gravity="end" android:text="Guadagno" android:textColor="@color/lydia_w_muted" android:textSize="10sp" />
     </LinearLayout>
 
-    <LinearLayout android:id="@+id/iv_r1" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="5dp" android:orientation="horizontal" android:gravity="center_vertical" android:visibility="gone">
-        <TextView android:id="@+id/iv_n1" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:textColor="@color/lydia_w_text" android:textSize="14sp" android:textStyle="bold" android:maxLines="1" android:ellipsize="end" />
-        <TextView android:id="@+id/iv_d1" android:layout_width="64dp" android:layout_height="wrap_content" android:gravity="end" android:textColor="@color/lydia_w_muted" android:textSize="13sp" android:maxLines="1" />
-        <TextView android:id="@+id/iv_g1" android:layout_width="84dp" android:layout_height="wrap_content" android:gravity="end" android:textColor="@color/lydia_w_muted" android:textSize="14sp" android:textStyle="bold" android:maxLines="1" />
+    <LinearLayout android:id="@+id/iv_r1" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="7dp" android:orientation="horizontal" android:gravity="center_vertical" android:visibility="gone">
+        <TextView android:id="@+id/iv_n1" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:textColor="@color/lydia_w_text" android:textSize="14sp" android:fontFamily="sans-serif-medium" android:maxLines="1" android:ellipsize="end" />
+        <TextView android:id="@+id/iv_d1" android:layout_width="wrap_content" android:layout_height="wrap_content" android:minWidth="62dp" android:gravity="end" android:textColor="@color/lydia_w_muted" android:textSize="12sp" android:maxLines="1" />
+        <TextView android:id="@+id/iv_g1" android:layout_width="wrap_content" android:layout_height="wrap_content" android:minWidth="78dp" android:gravity="end" android:textColor="@color/lydia_w_muted" android:textSize="14sp" android:fontFamily="sans-serif-medium" android:maxLines="1" />
     </LinearLayout>
-    <LinearLayout android:id="@+id/iv_r2" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="5dp" android:orientation="horizontal" android:gravity="center_vertical" android:visibility="gone">
-        <TextView android:id="@+id/iv_n2" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:textColor="@color/lydia_w_text" android:textSize="14sp" android:textStyle="bold" android:maxLines="1" android:ellipsize="end" />
-        <TextView android:id="@+id/iv_d2" android:layout_width="64dp" android:layout_height="wrap_content" android:gravity="end" android:textColor="@color/lydia_w_muted" android:textSize="13sp" android:maxLines="1" />
-        <TextView android:id="@+id/iv_g2" android:layout_width="84dp" android:layout_height="wrap_content" android:gravity="end" android:textColor="@color/lydia_w_muted" android:textSize="14sp" android:textStyle="bold" android:maxLines="1" />
+    <LinearLayout android:id="@+id/iv_r2" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="7dp" android:orientation="horizontal" android:gravity="center_vertical" android:visibility="gone">
+        <TextView android:id="@+id/iv_n2" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:textColor="@color/lydia_w_text" android:textSize="14sp" android:fontFamily="sans-serif-medium" android:maxLines="1" android:ellipsize="end" />
+        <TextView android:id="@+id/iv_d2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:minWidth="62dp" android:gravity="end" android:textColor="@color/lydia_w_muted" android:textSize="12sp" android:maxLines="1" />
+        <TextView android:id="@+id/iv_g2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:minWidth="78dp" android:gravity="end" android:textColor="@color/lydia_w_muted" android:textSize="14sp" android:fontFamily="sans-serif-medium" android:maxLines="1" />
     </LinearLayout>
-    <LinearLayout android:id="@+id/iv_r3" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="5dp" android:orientation="horizontal" android:gravity="center_vertical" android:visibility="gone">
-        <TextView android:id="@+id/iv_n3" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:textColor="@color/lydia_w_text" android:textSize="14sp" android:textStyle="bold" android:maxLines="1" android:ellipsize="end" />
-        <TextView android:id="@+id/iv_d3" android:layout_width="64dp" android:layout_height="wrap_content" android:gravity="end" android:textColor="@color/lydia_w_muted" android:textSize="13sp" android:maxLines="1" />
-        <TextView android:id="@+id/iv_g3" android:layout_width="84dp" android:layout_height="wrap_content" android:gravity="end" android:textColor="@color/lydia_w_muted" android:textSize="14sp" android:textStyle="bold" android:maxLines="1" />
+    <LinearLayout android:id="@+id/iv_r3" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="7dp" android:orientation="horizontal" android:gravity="center_vertical" android:visibility="gone">
+        <TextView android:id="@+id/iv_n3" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:textColor="@color/lydia_w_text" android:textSize="14sp" android:fontFamily="sans-serif-medium" android:maxLines="1" android:ellipsize="end" />
+        <TextView android:id="@+id/iv_d3" android:layout_width="wrap_content" android:layout_height="wrap_content" android:minWidth="62dp" android:gravity="end" android:textColor="@color/lydia_w_muted" android:textSize="12sp" android:maxLines="1" />
+        <TextView android:id="@+id/iv_g3" android:layout_width="wrap_content" android:layout_height="wrap_content" android:minWidth="78dp" android:gravity="end" android:textColor="@color/lydia_w_muted" android:textSize="14sp" android:fontFamily="sans-serif-medium" android:maxLines="1" />
     </LinearLayout>
-    <LinearLayout android:id="@+id/iv_r4" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="5dp" android:orientation="horizontal" android:gravity="center_vertical" android:visibility="gone">
-        <TextView android:id="@+id/iv_n4" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:textColor="@color/lydia_w_text" android:textSize="14sp" android:textStyle="bold" android:maxLines="1" android:ellipsize="end" />
-        <TextView android:id="@+id/iv_d4" android:layout_width="64dp" android:layout_height="wrap_content" android:gravity="end" android:textColor="@color/lydia_w_muted" android:textSize="13sp" android:maxLines="1" />
-        <TextView android:id="@+id/iv_g4" android:layout_width="84dp" android:layout_height="wrap_content" android:gravity="end" android:textColor="@color/lydia_w_muted" android:textSize="14sp" android:textStyle="bold" android:maxLines="1" />
+    <LinearLayout android:id="@+id/iv_r4" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="7dp" android:orientation="horizontal" android:gravity="center_vertical" android:visibility="gone">
+        <TextView android:id="@+id/iv_n4" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:textColor="@color/lydia_w_text" android:textSize="14sp" android:fontFamily="sans-serif-medium" android:maxLines="1" android:ellipsize="end" />
+        <TextView android:id="@+id/iv_d4" android:layout_width="wrap_content" android:layout_height="wrap_content" android:minWidth="62dp" android:gravity="end" android:textColor="@color/lydia_w_muted" android:textSize="12sp" android:maxLines="1" />
+        <TextView android:id="@+id/iv_g4" android:layout_width="wrap_content" android:layout_height="wrap_content" android:minWidth="78dp" android:gravity="end" android:textColor="@color/lydia_w_muted" android:textSize="14sp" android:fontFamily="sans-serif-medium" android:maxLines="1" />
     </LinearLayout>
-
-    <TextView android:id="@+id/iv_upd" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:gravity="end" android:textColor="@color/lydia_w_muted" android:textSize="10sp" android:maxLines="1" />
 </LinearLayout>

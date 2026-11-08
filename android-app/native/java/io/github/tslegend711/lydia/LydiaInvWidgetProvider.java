@@ -77,7 +77,6 @@ public class LydiaInvWidgetProvider extends AppWidgetProvider {
         if (inv == null) return false;
         JSONArray rows = inv.optJSONArray("rows");
         if (rows == null || rows.length() == 0) return false;
-        boolean hid = inv.optBoolean("hid", false);
         double tv = 0, tc = 0;
         boolean any = false, complete = true;
         for (int i = 0; i < rows.length(); i++) {
@@ -95,17 +94,19 @@ public class LydiaInvWidgetProvider extends AppWidgetProvider {
             tc += cost;
             if (pp[1] > 0) {
                 double ch = pp[0] / pp[1] - 1;
-                r.put("d", pct(ch));
+                r.put("d", (ch >= 0 ? "▲ " : "▼ ") + pct(ch).substring(1));
                 r.put("ds", sgn(ch * 100));
             }
-            r.put("g", hid ? pct(cost > 0 ? g / cost : 0) : signed(g));
+            r.put("g", signed(g));
+            r.put("gp", pct(cost > 0 ? g / cost : 0));
             r.put("s", sgn(g));
         }
         if (!any) return false;
         if (complete) {
             double g = tv - tc;
-            inv.put("total", hid ? "••••" : eur(tv));
-            inv.put("gain", hid ? pct(tc > 0 ? g / tc : 0) : signed(g) + " (" + pct(tc > 0 ? g / tc : 0) + ")");
+            inv.put("total", eur(tv));
+            inv.put("gain", signed(g) + " · " + pct(tc > 0 ? g / tc : 0));
+            inv.put("gainp", pct(tc > 0 ? g / tc : 0));
             inv.put("sign", sgn(g));
         }
         inv.put("upd", "prezzi " + new SimpleDateFormat("HH:mm", Locale.ITALY).format(new Date()));
@@ -155,21 +156,24 @@ public class LydiaInvWidgetProvider extends AppWidgetProvider {
     static RemoteViews build(Context c) {
         RemoteViews v = new RemoteViews(c.getPackageName(), R.layout.lydia_inv_widget);
         JSONObject j = LydiaWidgetProvider.data(c, "inv");
+        boolean pv = LydiaWidgetProvider.priv(c), hid = LydiaWidgetProvider.hidden(c);
         v.setOnClickPendingIntent(R.id.iv_root, LydiaWidgetProvider.link(c, "patrimonio", 20));
+        v.setViewVisibility(R.id.iv_eye, pv ? View.VISIBLE : View.GONE);
+        v.setImageViewResource(R.id.iv_eye, hid ? R.drawable.lydia_ic_eye : R.drawable.lydia_ic_eye_off);
+        v.setOnClickPendingIntent(R.id.iv_eye, LydiaWidgetProvider.action(c, LydiaWidgetProvider.ACTION_REVEAL, 30));
         JSONArray rows = j != null ? j.optJSONArray("rows") : null;
         if (j == null || rows == null || rows.length() == 0) {
             v.setTextViewText(R.id.iv_total, j == null ? "Apri Lydia" : "Nessun titolo");
-            v.setTextViewText(R.id.iv_gain, "");
-            v.setInt(R.id.iv_gain, "setBackgroundResource", 0);
-            v.setTextViewText(R.id.iv_upd, j == null ? "Il widget si riempie dopo la prima apertura" : "Aggiungi un titolo in Patrimonio");
+            v.setTextViewText(R.id.iv_gain, j == null ? "Il widget si riempie alla prima apertura" : "Aggiungi un titolo in Patrimonio");
+            v.setTextColor(R.id.iv_gain, c.getColor(R.color.lydia_w_muted));
+            v.setTextViewText(R.id.iv_upd, "");
             for (int r : ROW) v.setViewVisibility(r, View.GONE);
             return v;
         }
-        v.setTextViewText(R.id.iv_total, j.optString("total", ""));
-        v.setTextViewText(R.id.iv_gain, j.optString("gain", ""));
         int sg = j.optInt("sign", 0);
+        v.setTextViewText(R.id.iv_total, hid ? "•••••• €" : j.optString("total", ""));
+        v.setTextViewText(R.id.iv_gain, hid ? j.optString("gainp", "") : j.optString("gain", ""));
         v.setTextColor(R.id.iv_gain, color(c, sg));
-        v.setInt(R.id.iv_gain, "setBackgroundResource", sg < 0 ? R.drawable.lydia_chip_neg : R.drawable.lydia_chip_pos);
         v.setTextViewText(R.id.iv_upd, j.optString("upd", ""));
         for (int i = 0; i < ROW.length; i++) {
             JSONObject r = rows.optJSONObject(i);
@@ -182,7 +186,7 @@ public class LydiaInvWidgetProvider extends AppWidgetProvider {
             String d = r.optString("d", "");
             v.setTextViewText(DAY[i], d.length() > 0 ? d : "–");
             v.setTextColor(DAY[i], color(c, r.optInt("ds", 0)));
-            v.setTextViewText(GAIN[i], r.optString("g", ""));
+            v.setTextViewText(GAIN[i], hid ? r.optString("gp", "") : r.optString("g", ""));
             v.setTextColor(GAIN[i], color(c, r.optInt("s", 0)));
         }
         return v;

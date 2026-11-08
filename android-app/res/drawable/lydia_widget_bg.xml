@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Sfondo chiaro in vetro, come la barra dell'app -->
+<!-- Sfondo pieno e calmo, angoli come One UI, sottile filo dorato -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item><shape android:shape="rectangle"><solid android:color="#EBF6F7FA" /><corners android:radius="26dp" /></shape></item>
-    <item><shape android:shape="rectangle"><gradient android:type="radial" android:centerX="0.5" android:centerY="0" android:gradientRadius="220dp" android:startColor="#26D4AF37" android:endColor="#00D4AF37" /><corners android:radius="26dp" /></shape></item>
-    <item><shape android:shape="rectangle"><solid android:color="#00000000" /><stroke android:width="1dp" android:color="#1F141A24" /><corners android:radius="26dp" /></shape></item>
+    <item><shape android:shape="rectangle"><solid android:color="#F5F7F6F2" /><corners android:radius="28dp" /></shape></item>
+    <item><shape android:shape="rectangle"><solid android:color="#00000000" /><stroke android:width="1dp" android:color="#2EB8912E" /><corners android:radius="28dp" /></shape></item>
 </layer-list>
