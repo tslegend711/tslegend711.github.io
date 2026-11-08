@@ -142,19 +142,22 @@ public class LydiaInvWidgetProvider extends AppWidgetProvider {
             JSONObject res = new JSONObject(sb.toString()).getJSONObject("chart").getJSONArray("result").getJSONObject(0);
             double p = res.getJSONObject("meta").optDouble("regularMarketPrice", 0);
             if (!(p > 0)) return null;
-            double prev = 0;
+            double prev = 0, lastClose = 0;
             JSONArray cl = res.getJSONObject("indicators").getJSONArray("quote").getJSONObject(0).optJSONArray("close");
             if (cl != null) {
                 int n = 0;
                 for (int i = cl.length() - 1; i >= 0; i--) {
                     if (cl.isNull(i)) continue;
                     n++;
+                    if (n == 1) lastClose = cl.optDouble(i, 0);
                     if (n == 2) {
                         prev = cl.optDouble(i, 0);
                         break;
                     }
                 }
             }
+            // l'ultima chiusura della serie è il prezzo giusto della Borsa scelta
+            if (lastClose > 0) p = lastClose;
             if (!(prev > 0)) prev = res.getJSONObject("meta").optDouble("previousClose", 0);
             return new double[]{p, prev};
         } catch (Exception e) {
