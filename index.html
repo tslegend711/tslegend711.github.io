@@ -89,6 +89,10 @@ section.blk{margin:0 0 14px}
 .seg{display:flex;padding:3px;gap:3px;border:1px solid var(--glass-line);background:var(--glass)}
 .seg button{flex:1;border:0;background:none;padding:8px 10px;font-size:.85rem;font-weight:700;color:var(--muted);white-space:nowrap}
 .seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+#ftype button[data-v="out"][aria-pressed="true"]{background:var(--neg);color:var(--bg)}
+#ftype button[data-v="in"][aria-pressed="true"]{background:var(--pos);color:var(--bg)}
+#ftype button[data-v="tr"][aria-pressed="true"]{background:var(--gold-grad);color:#0B1020}
+#ftype button[data-v="inv"][aria-pressed="true"]{background:var(--c5);color:#fff}
 .pernav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px}
 .pernav b{font-size:1rem;text-transform:capitalize}
 .pernav button{width:40px;height:40px;border:1px solid var(--glass-line);background:var(--glass);font-size:1.2rem}
@@ -548,21 +552,24 @@ function movForm(m,preset,quick){const isNew=!m;const d=m?{...m}:{id:uid(),type:
  openSheet(`<h3>${isNew?'Nuovo movimento':'Modifica movimento'}</h3>
  <div class="seg" id="ftype" role="group" aria-label="Tipo">${[['out','Spesa'],['in','Entrata'],['tr','Giroconto'],['inv','Investim.']].map(([k,l])=>`<button data-v="${k}" aria-pressed="${type===k}">${l}</button>`).join('')}</div>
  <label class="f" style="margin-top:14px">Importo (${CS()})<input id="famt" class="amount num" inputmode="decimal" autocomplete="off" placeholder="0,00" value="${numIn(d.amount)}"></label>
- <div class="f" id="fcatw">Categoria<div class="cats" id="fcats"></div><input id="fcatnew" placeholder="Oppure scrivi una nuova categoria"></div>
+ <div class="f" id="fcatw">Categoria<input id="fcatnew" type="search" placeholder="Cerca o scrivi una nuova categoria" autocomplete="off" style="margin-bottom:8px"><div class="cats" id="fcats"></div><div class="note" id="fcathint" hidden></div></div>
  <label class="f" id="faccw">Conto<select id="facc">${opt(d.acct)}</select></label>
  <div class="f2" id="ftrw"><label class="f">Da<select id="ffrom">${opt(d.acct)}</select></label><label class="f">A<select id="fto">${opt(d.to||'Contanti')}</select></label></div>
  <div class="f2"><label class="f">Data<input id="fdate" type="date" value="${d.date}"></label><label class="f">Descrizione<input id="fdesc" value="${esc(d.desc)}" placeholder="Facoltativa"></label></div>
  <label class="check" id="fstraordw"><input type="checkbox" id="fstraord" ${d.straord?'checked':''}> Spesa straordinaria, da escludere dalle medie (es. maxirata)</label>
  <div class="actions">${isNew?'<button class="btn ghost" id="fagain">Salva e aggiungi altro</button>':'<button class="btn danger" id="fdel">Elimina</button>'}<button class="btn" id="fsave">Salva</button></div>`);
  const drawCats=()=>{const tr=type==='tr';$('#fcatw').hidden=tr;$('#ftrw').hidden=!tr;$('#faccw').hidden=tr||acc.length<2;$('#fstraordw').hidden=type!=='out';if(tr)return;
-  const cs=allCats(type);if(cat&&!cs.includes(cat))cs.unshift(cat);$('#fcats').innerHTML=cs.map(c=>`<button type="button" data-c="${esc(c)}" aria-pressed="${c===cat}">${esc(c)}</button>`).join('')};
+  let cs=allCats(type);if(cat&&!cs.includes(cat))cs.unshift(cat);const q=($('#fcatnew').value||'').trim().toLowerCase();const nq=x=>x.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  if(q)cs=cs.filter(c=>nq(c).includes(nq(q)));$('#fcats').innerHTML=cs.map(c=>`<button type="button" data-c="${esc(c)}" aria-pressed="${c===cat}">${esc(c)}</button>`).join('');
+  const exact=q&&allCats(type).some(c=>nq(c)===nq(q));const h=$('#fcathint');h.hidden=!q||exact;h.textContent=q&&!exact?(cs.length?'Tocca una categoria, oppure salva per crearne una nuova: ':'Nessuna categoria trovata: verrà creata ')+'«'+$('#fcatnew').value.trim()+'»':''};
+ $('#fcatnew').oninput=()=>{cat='';drawCats()};$('#fcatnew').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();const f=$('#fcats [data-c]');if(f){cat=f.dataset.c;$('#fcatnew').value='';drawCats()}}};
  drawCats();
  if(isNew)setTimeout(()=>{try{$('#famt').focus()}catch(e){}},quick?250:60);
  $('#fcats').onclick=e=>{const b=e.target.closest('[data-c]');if(!b)return;cat=b.dataset.c;$('#fcatnew').value='';drawCats()};
  $('#ftype').onclick=e=>{const b=e.target.closest('[data-v]');if(!b)return;type=b.dataset.v;$$('#ftype button').forEach(x=>x.setAttribute('aria-pressed',x===b));if(type!=='tr'&&!allCats(type).includes(cat))cat='';drawCats()};
  const doSave=again=>{const amt=parseNum($('#famt').value);if(!(amt>0)){toast('Inserisci un importo maggiore di zero');return}const date=$('#fdate').value;if(!date){toast('Scegli una data');return}
   let rec;if(type==='tr'){const f=$('#ffrom').value,t=$('#fto').value;if(f===t){toast('Scegli due conti diversi');return}rec={id:d.id,type:'tr',amount:Math.round(amt*100)/100,date,cat:'Giroconto',desc:$('#fdesc').value.trim(),acct:f,to:t}}
-  else{rec={id:d.id,type,amount:Math.round(amt*100)/100,date,cat:$('#fcatnew').value.trim()||cat||'Altro',desc:$('#fdesc').value.trim(),acct:$('#facc').value||d.acct||mainAcct()};if(type==='out'&&$('#fstraord').checked)rec.straord=true}
+  else{rec={id:d.id,type,amount:Math.round(amt*100)/100,date,cat:(()=>{const t=$('#fcatnew').value.trim();if(!t)return cat||'Altro';const ex=allCats(type).find(c=>c.toLowerCase()===t.toLowerCase());return ex||t})(),desc:$('#fdesc').value.trim(),acct:$('#facc').value||d.acct||mainAcct()};if(type==='out'&&$('#fstraord').checked)rec.straord=true}
   const i=S.movs.findIndex(x=>x.id===d.id);if(i>=0)S.movs[i]=rec;else{S.movs.push(rec);keepVerified(rec)}save();render();
   const lbl=type==='tr'?`Giroconto ${rec.acct} → ${rec.to}`:type==='in'?'Entrata':type==='inv'?'Investimento':'Spesa';
   if(again){movForm(null,{type,date,cat:type==='tr'?'':rec.cat,acct:rec.acct,to:rec.to},true);toast(`${lbl} di ${eur(rec.amount)} salvata`)}else{closeSheet();toast(`${lbl} di ${eur(rec.amount)} salvata`)}};
@@ -1005,7 +1012,7 @@ function fixBalSheet(a){const cur=Math.round(accBal(a)*100)/100;openSheet(`<h3>C
 
 /* ---------- privacy, backup, novità ---------- */
 const APP_VERSION='1.2.2';
-const CHANGELOG=[['1.2.2','8 novembre 2026',["Busta paga: scegli il conto e la data dell'accredito, lo stipendio e i rimborsi entrano come movimenti","Se non hai ancora un conto, Lydia te lo fa creare prima di leggere la busta paga","Mentre legge il PDF compare una finestra di attesa; se qualcosa va storto te lo dice","Un movimento con data precedente all'ultimo saldo verificato non altera il saldo"]],
+const CHANGELOG=[['1.2.2','8 novembre 2026',["Busta paga: scegli il conto e la data dell'accredito, lo stipendio e i rimborsi entrano come movimenti","Se non hai ancora un conto, Lydia te lo fa creare prima di leggere la busta paga","Mentre legge il PDF compare una finestra di attesa; se qualcosa va storto te lo dice","Un movimento con data precedente all'ultimo saldo verificato non altera il saldo","Nuovo movimento: Spesa in rosso, Entrata in verde, Giroconto in oro","Categorie: campo di ricerca sopra l'elenco"]],
  ['1.2.1','8 novembre 2026',["La tastiera non si chiude più mentre scrivi","Riserva di emergenza: puoi scrivere tu la cifra","Gli aggiornamenti arrivano subito, senza aspettare la cache","Nuova schermata iniziale: tre passi numerati e un solo pulsante per importare"]],
  ['1.2.0','8 novembre 2026',["Nuova sezione Conti: saldo di ogni conto, entrate e uscite del mese, andamento degli ultimi sei mesi","Buste paga lette in automatico dal PDF, direttamente sul telefono; resta l'inserimento a mano","Calcolo della riserva di emergenza da stipendio, spese e tipo di contratto","Import dei backup .zip senza connessione, scegliendo il file da qualsiasi cartella","Promemoria del backup e schermata sulla privacy","Grafici disegnati dall'app: nessuna libreria o font esterno, tutto funziona offline","Impostazioni riorganizzate, con la scelta della valuta","Dettagli color oro come il logo"]],
  ['1.1.0','7 novembre 2026',["Più conti (conto corrente, contanti, carte, depositi) con saldi automatici","Giroconti tra i conti","Scorciatoie dall'icona: spesa, entrata, giroconto","Nuovo nome e nuova icona: Lydia"]],
