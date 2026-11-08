@@ -321,6 +321,11 @@ input,textarea,select,[contenteditable]{-webkit-user-select:text;user-select:tex
 .fab{-webkit-backdrop-filter:blur(4px) saturate(140%);backdrop-filter:blur(4px) saturate(140%)}
 :root[data-theme="dark"] .fab svg{stroke:#FFF3CC}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .fab svg{stroke:#FFF3CC}}
+/* la pagina non scorre: scorre solo il contenuto. Così barra in alto, barra in basso e pulsante + restano fermi */
+html,body{height:100%;overflow:hidden;overscroll-behavior:none}
+main#scroller{position:fixed;inset:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding-top:calc(56px + env(safe-area-inset-top,0px))}
+:root.native main#scroller{padding-top:calc(56px + var(--sat,0px))}
+.topbar{position:fixed;left:0;right:0}
 </style>
 </head>
 <body>
@@ -331,7 +336,7 @@ input,textarea,select,[contenteditable]{-webkit-user-select:text;user-select:tex
   <button class="iconbtn" id="tipsbtn" aria-label="Consigli"><svg class="i" viewBox="0 0 24 24"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.7.7 1 1.5 1 2.5h6c0-1 .3-1.8 1-2.5A6 6 0 0 0 12 3z"/></svg><span class="dot" id="tipdot" hidden></span></button>
   <button class="iconbtn" id="gear" aria-label="Impostazioni e backup"><svg class="i" viewBox="0 0 24 24"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/></svg></button>
 </div></header>
-<main><div class="wrap" id="main"></div></main>
+<main id="scroller"><div class="wrap" id="main"></div></main>
 <button class="fab" id="fab" aria-label="Aggiungi movimento"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
 <nav class="tabs glass" aria-label="Sezioni"><div class="in">
   <button data-tab="home"><span class="pill"><svg class="i" viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9H3z"/><path d="M9 20v-6h6v6"/></svg></span>Home</button>
@@ -541,7 +546,7 @@ function ask(title,text,ok,danger){return new Promise(res=>{openSheet(`<h3>${esc
 const TABS=['home','movimenti','conti','stipendi','patrimonio','consigli'];
 const startHash=location.hash.slice(1);let tab=TABS.includes(startHash)?startHash:'home';
 let per={kind:'12m',off:0},mf={q:'',t:'all',m:'all',c:'all',a:'all'};
-function go(t){tab=t;try{history.replaceState(null,'','#'+t)}catch(e){location.hash=t}window.scrollTo(0,0);render()}
+function go(t){tab=t;try{history.replaceState(null,'','#'+t)}catch(e){location.hash=t}$('#scroller').scrollTo(0,0);render()}
 function bigTitle(t,sub){return `<div class="bigtitle"><h1>${esc(t)}</h1>${sub?`<p>${sub}</p>`:''}</div>`}
 function render(){
  $$('nav.tabs button').forEach(b=>b.setAttribute('aria-current',b.dataset.tab===tab?'page':'false'));
@@ -1313,8 +1318,9 @@ function fixBalSheet(a){const cur=Math.round(accBal(a)*100)/100;openSheet(`<h3>C
  $('#fxx').onclick=closeSheet;$('#fxs').onclick=()=>{const v=parseNum($('#fxv').value);if(isNaN(v)){toast('Scrivi un importo');return}setAccBal(a,v);save();closeSheet();render();toast(`Saldo di ${a.name} aggiornato`)}}
 
 /* ---------- privacy, backup, novità ---------- */
-const APP_VERSION='1.7.1';
-const CHANGELOG=[['1.7.1','8 novembre 2026',["Tema scuro: sfondo quasi nero con una luce oro in alto, senza sfumature colorate","App Android: la barra in alto continua sotto l'ora e le notifiche, e lo sfondo continua sotto la barra delle gesture"]],
+const APP_VERSION='1.7.2';
+const CHANGELOG=[['1.7.2','8 novembre 2026',["Barra in alto, barra in basso e pulsante + restano fermi mentre scorri","Pulsante + più trasparente","App Android: sfondo anche sotto la barra delle gesture; widget ridisegnati"]],
+ ['1.7.1','8 novembre 2026',["Tema scuro: sfondo quasi nero con una luce oro in alto, senza sfumature colorate","App Android: la barra in alto continua sotto l'ora e le notifiche, e lo sfondo continua sotto la barra delle gesture"]],
  ['1.7.0','8 novembre 2026',["Estratto conto della banca: ritrova i movimenti che hai già registrato, ne corregge la data con quella della banca e aggiunge quelli che mancano","Ti mostra anche le spese che hai in Lydia ma non nell'estratto, e confronta il saldo","I movimenti verificati con la banca hanno una spunta verde"]],
  ['1.6.0','8 novembre 2026',["Estratti conto delle carte: carichi il PDF e l'addebito della carta si divide nelle singole spese, ognuna con la sua categoria","Più carte, ognuna con il suo conto e il tipo di pagamento (saldo a fine mese o revolving)","Se l'addebito non è ancora arrivato, l'estratto resta in attesa e si collega da solo","Le categorie che correggi vengono ricordate per i mesi successivi"]],
  ['1.5.0','8 novembre 2026',["Testi più semplici in tutta l'app","Barra in alto sempre leggibile mentre scorri","Pulsanti e selettori più sobri, grafico della Home più pulito","Widget Movimenti su una riga; widget Investimenti più basso","App Android: barre di sistema dello stesso colore dell'app","Barra in basso sospesa, con la sezione attiva evidenziata","Pulsante + rotondo, oro lucido in vetro","Angoli arrotondati come su Android","Grafico della Home: entrate in verde e spese in rosso, con barre arrotondate","Barre in alto e in basso più trasparenti, campi selezionati in oro","Cerca nella Home: scrivi cosa vuoi fare, per esempio \"backup\" o \"12 caffè\""]],
@@ -1597,7 +1603,7 @@ $('#ov').onclick=e=>{if(e.target.id==='ov')closeSheet()};
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#ov').classList.contains('open'))closeSheet()});
 function quickFromHash(h){if(!QUICK[h])return false;try{history.replaceState(null,'','#home')}catch(e){}tab='home';render();movForm(null,{type:QUICK[h]},true);return true}
 window.addEventListener('hashchange',()=>{const t=location.hash.slice(1);if(quickFromHash(t))return;if(TABS.includes(t)&&t!==tab){tab=t;render()}});
-addEventListener('scroll',()=>$('#topbar').classList.toggle('scrolled',scrollY>70),{passive:true});
+$('#scroller').addEventListener('scroll',()=>$('#topbar').classList.toggle('scrolled',$('#scroller').scrollTop>70),{passive:true});
 try{matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{applyTheme();render()})}catch(e){}
 $('#brand').innerHTML=LOGO(26)+'<span>Lydia</span><span class="ver">v'+APP_VERSION+'</span>';$('#tipsbtn').onclick=()=>go(tab==='consigli'?'home':'consigli');
 function drawEye(){const h=HID();$('#eyebtn').setAttribute('aria-pressed',h);$('#eyebtn').setAttribute('aria-label',h?'Mostra gli importi':'Nascondi gli importi');$('#eyeico').innerHTML=h?'<path d="M3 3l18 18"/><path d="M10.6 5.1A10 10 0 0 1 12 5c6.5 0 10 7 10 7a17 17 0 0 1-3.2 4.2M6.6 6.6C3.7 8.5 2 12 2 12s3.5 7 10 7c1.9 0 3.5-.6 4.9-1.4"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/>':'<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>'}
