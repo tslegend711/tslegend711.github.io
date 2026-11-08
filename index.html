@@ -468,6 +468,7 @@ function render(){
  chartBase();
  ({home:renderHome,movimenti:renderMov,conti:renderConti,stipendi:renderSal,patrimonio:renderPat,consigli:renderTips})[tab]();
  $('#tipsbtn').setAttribute('aria-current',tab==='consigli'?'page':'false');
+ syncWidget();
  const n=insights().filter(x=>x.lv==='act'||x.lv==='warn'||x.lv==='bad').length;const d=$('#tipdot');d.hidden=!n;d.textContent=n;
 }
 
@@ -1025,8 +1026,9 @@ function fixBalSheet(a){const cur=Math.round(accBal(a)*100)/100;openSheet(`<h3>C
  $('#fxx').onclick=closeSheet;$('#fxs').onclick=()=>{const v=parseNum($('#fxv').value);if(isNaN(v)){toast('Scrivi un importo');return}setAccBal(a,v);save();closeSheet();render();toast(`Saldo di ${a.name} aggiornato`)}}
 
 /* ---------- privacy, backup, novità ---------- */
-const APP_VERSION='1.3.0';
-const CHANGELOG=[['1.3.0','8 novembre 2026',["Backup su Drive con un tocco, dal menu di condivisione","Backup protetto da password (cifratura AES-256 sul telefono)","Lydia chiede a Chrome di non cancellare mai i suoi dati da sola"]],
+const APP_VERSION='1.4.0';
+const CHANGELOG=[['1.4.0','8 novembre 2026',["App Android: widget per la schermata Home con il totale dei conti e i pulsanti Spesa, Entrata e Giroconto","App Android: icona di Lydia, anche adattiva e a tema"]],
+ ['1.3.0','8 novembre 2026',["Backup su Drive con un tocco, dal menu di condivisione","Backup protetto da password (cifratura AES-256 sul telefono)","Lydia chiede a Chrome di non cancellare mai i suoi dati da sola"]],
  ['1.2.4','8 novembre 2026',["Modalità privacy: l'occhio in alto nasconde o mostra tutti gli importi","Barra in basso: la sezione attiva è in oro, senza riquadro"]],
  ['1.2.3','8 novembre 2026',["Ogni movimento chiede da quale conto parte o su quale conto arriva, con il saldo di ciascuno","Import da backup: i conti di investimento diventano ETF o fondi in Patrimonio, con quote e prezzo di carico","Nuovo movimento: Spesa in rosso, Entrata in verde, Giroconto in oro","Categorie: campo di ricerca e le 12 più usate in vista","Patrimonio: la liquidità è in oro nel grafico"]],
  ['1.2.2','8 novembre 2026',["Busta paga: scegli il conto e la data dell'accredito, lo stipendio e i rimborsi entrano come movimenti","Se non hai ancora un conto, Lydia te lo fa creare prima di leggere la busta paga","Mentre legge il PDF compare una finestra di attesa; se qualcosa va storto te lo dice","Un movimento con data precedente all'ultimo saldo verificato non altera il saldo"]],
@@ -1047,6 +1049,12 @@ function privacySheet(first,then){const s=S.settings;openSheet(`<h3>${first?'Pri
 function backupDue(){const s=S.settings;if(!+s.backupEvery||!S.movs.length)return false;const ref=s.lastBackup||s.since;if(!ref)return false;if(s.backupSnooze&&daysSince(s.backupSnooze)<3)return false;return daysSince(ref)>=+s.backupEvery}
 function backupBanner(){if(!backupDue())return '';const s=S.settings;return `<section class="blk glass card goldline"><h2>È ora di un backup</h2><p class="sub">${s.lastBackup?`L'ultimo è del ${fmtDate(s.lastBackup)}.`:'Non hai ancora scaricato un backup.'} I dati sono solo su questo telefono.</p><div class="actions"><button class="btn ghost sm" id="bklater">Più tardi</button><button class="btn gold sm" id="bknow">Scarica backup</button></div></section>`}
 function bindBackupBanner(){if(!$('#bknow'))return;$('#bknow').onclick=doBackup;$('#bklater').onclick=()=>{S.settings.backupSnooze=today();save();render()}}
+/* ---------- widget dell'app Android ---------- */
+let wTimer;function syncWidget(){if(!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform()))return;const P=window.Capacitor.Plugins&&window.Capacitor.Plugins.LydiaWidget;if(!P)return;clearTimeout(wTimer);wTimer=setTimeout(()=>{try{
+ const L=S.accounts.map(a=>({n:a.name,b:accBal(a)}));const tot=sum(L,x=>x.b);const d=new Date();
+ const data={total:S.accounts.length?eur(tot):'Aggiungi i tuoi conti',lines:L.slice().sort((a,b)=>b.b-a.b).slice(0,3).map(x=>x.n+' '+eur0(x.b)).join(' · '),upd:pad(d.getHours())+':'+pad(d.getMinutes())};
+ P.setData({data:JSON.stringify(data)}).catch(()=>{})}catch(e){}},400)}
+function openLink(url){const k=String(url||'').replace(/^lydia:\/\//,'').replace(/[\/?#].*$/,'');if(QUICK[k])quickFromHash(k);else if(TABS.includes(k)){closeSheet();go(k)}}
 /* ---------- backup sicuro ---------- */
 const NATIVE=()=>!!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform());
 const CP=n=>window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins[n];
@@ -1298,6 +1306,7 @@ function drawEye(){const h=HID();$('#eyebtn').setAttribute('aria-pressed',h);$('
 $('#eyebtn').onclick=()=>{S.settings.hideAmounts=!S.settings.hideAmounts;save();drawEye();render();toast(S.settings.hideAmounts?'Importi nascosti':'Importi visibili',1800)};drawEye();
 applyCurrency();if(!S.settings.since){S.settings.since=today();save()}
 migrateAccounts();applyTheme();render();startQuotes();askPersist();
+if(NATIVE()&&CP('App')){CP('App').addListener('appUrlOpen',e=>openLink(e&&e.url));CP('App').getLaunchUrl().then(r=>{if(r&&r.url)setTimeout(()=>openLink(r.url),300)}).catch(()=>{})}
 if(NATIVE()&&CP('App'))CP('App').addListener('backButton',()=>{if($('#ov').classList.contains('open'))closeSheet();else if(tab!=='home')go('home');else CP('App').exitApp()});if(!quickFromHash(startHash))welcomeFlow();
 /* ridisegna i grafici solo se cambia la larghezza (la tastiera cambia solo l'altezza) e mai mentre stai scrivendo */
 let lastW=innerWidth;addEventListener('resize',()=>{clearTimeout(window.__rz);window.__rz=setTimeout(()=>{if(Math.abs(innerWidth-lastW)<2)return;const ae=document.activeElement;if(ae&&/^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName))return;lastW=innerWidth;if(!$('#ov').classList.contains('open'))render()},250)});

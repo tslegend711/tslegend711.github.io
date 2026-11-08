@@ -51,8 +51,8 @@ jobs:
           sed -i "s#<script>if('serviceWorker' in navigator).*</script>##" www/index.html
           sed -i '/rel="manifest"/d' www/index.html
           npx cap add android
-          # icone di Lydia al posto di quelle predefinite di Capacitor
-          cp -r res/. android/app/src/main/res/
+          # icone, widget e link lydia:// sopra il progetto generato da Capacitor
+          python3 scripts/patch_android.py
           V=$(grep -o "APP_VERSION='[0-9.]*'" www/index.html | grep -o "[0-9.]*" | head -1)
           echo "APPV=$V" >> "$GITHUB_ENV"
           sed -i "s/versionCode [0-9]*/versionCode ${{ github.run_number }}/; s/versionName \"[^\"]*\"/versionName \"$V\"/" android/app/build.gradle
