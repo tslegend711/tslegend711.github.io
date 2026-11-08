@@ -14,6 +14,8 @@ public class MainActivity extends BridgeActivity {
         super.onCreate(savedInstanceState);
         // Barre di sistema e tastiera: il contenuto resta sempre visibile, anche con Android 15 a schermo intero.
         androidx.core.view.WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+        // niente effetto elastico sulla pagina intera: barre sempre ferme
+        try { getBridge().getWebView().setOverScrollMode(View.OVER_SCROLL_NEVER); } catch (Exception ignored) { }
         View root = findViewById(android.R.id.content);
         if (root != null) {
             ViewCompat.setOnApplyWindowInsetsListener(root, (v, insets) -> {
@@ -23,7 +25,7 @@ public class MainActivity extends BridgeActivity {
                 LydiaWidgetPlugin.topInsetPx = bars.top;
                 // in basso: sotto la barra delle gesture disegna l'app; con la tastiera aperta lascia spazio alla tastiera
                 boolean kb = ime.bottom > bars.bottom;
-                LydiaWidgetPlugin.bottomInsetPx = kb ? 0 : bars.bottom;
+                LydiaWidgetPlugin.bottomInsetPx = bars.bottom;
                 v.setPadding(bars.left, 0, bars.right, kb ? ime.bottom : 0);
                 return WindowInsetsCompat.CONSUMED;
             });

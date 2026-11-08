@@ -323,8 +323,10 @@ input,textarea,select,[contenteditable]{-webkit-user-select:text;user-select:tex
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .fab svg{stroke:#FFF3CC}}
 /* la pagina non scorre: scorre solo il contenuto. Così barra in alto, barra in basso e pulsante + restano fermi */
 html,body{height:100%;overflow:hidden;overscroll-behavior:none}
-main#scroller{position:fixed;inset:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding-top:calc(56px + env(safe-area-inset-top,0px))}
+main#scroller{position:fixed;inset:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:none;padding-top:calc(56px + env(safe-area-inset-top,0px))}
 :root.native main#scroller{padding-top:calc(56px + var(--sat,0px))}
+/* tastiera aperta: barra e + restano al loro posto, sotto la tastiera */
+:root.kbopen nav.tabs,:root.kbopen .fab{visibility:hidden;pointer-events:none}
 .topbar{position:fixed;left:0;right:0}
 .sel,.filters select{border-radius:var(--r-sm)}
 </style>
@@ -1319,8 +1321,8 @@ function fixBalSheet(a){const cur=Math.round(accBal(a)*100)/100;openSheet(`<h3>C
  $('#fxx').onclick=closeSheet;$('#fxs').onclick=()=>{const v=parseNum($('#fxv').value);if(isNaN(v)){toast('Scrivi un importo');return}setAccBal(a,v);save();closeSheet();render();toast(`Saldo di ${a.name} aggiornato`)}}
 
 /* ---------- privacy, backup, novità ---------- */
-const APP_VERSION='1.7.2';
-const CHANGELOG=[['1.7.2','8 novembre 2026',["Barra in alto, barra in basso e pulsante + restano fermi mentre scorri","Movimenti: pulsante per caricare l'estratto conto della banca o della carta","Pulsante + più trasparente","App Android: sfondo anche sotto la barra delle gesture; widget ridisegnati"]],
+const APP_VERSION='1.7.3';
+const CHANGELOG=[['1.7.3','8 novembre 2026',["La barra in basso non si sposta più: né quando tiri la pagina su o giù, né quando si apre la tastiera","App Android: la barra non finisce più sopra la linea delle gesture dopo aver chiuso la tastiera"]],['1.7.2','8 novembre 2026',["Barra in alto, barra in basso e pulsante + restano fermi mentre scorri","Movimenti: pulsante per caricare l'estratto conto della banca o della carta","Pulsante + più trasparente","App Android: sfondo anche sotto la barra delle gesture; widget ridisegnati"]],
  ['1.7.1','8 novembre 2026',["Tema scuro: sfondo quasi nero con una luce oro in alto, senza sfumature colorate","App Android: la barra in alto continua sotto l'ora e le notifiche, e lo sfondo continua sotto la barra delle gesture"]],
  ['1.7.0','8 novembre 2026',["Estratto conto della banca: ritrova i movimenti che hai già registrato, ne corregge la data con quella della banca e aggiunge quelli che mancano","Ti mostra anche le spese che hai in Lydia ma non nell'estratto, e confronta il saldo","I movimenti verificati con la banca hanno una spunta verde"]],
  ['1.6.0','8 novembre 2026',["Estratti conto delle carte: carichi il PDF e l'addebito della carta si divide nelle singole spese, ognuna con la sua categoria","Più carte, ognuna con il suo conto e il tipo di pagamento (saldo a fine mese o revolving)","Se l'addebito non è ancora arrivato, l'estratto resta in attesa e si collega da solo","Le categorie che correggi vengono ricordate per i mesi successivi"]],
@@ -1358,7 +1360,7 @@ let wTimer;function syncWidget(){if(!(window.Capacitor&&window.Capacitor.isNativ
 function syncBars(){const P=window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform()&&window.Capacitor.Plugins&&window.Capacitor.Plugins.LydiaWidget;if(!P||!P.setBars)return;
  const dark=document.documentElement.getAttribute('data-theme')==='dark'||(!document.documentElement.getAttribute('data-theme')&&matchMedia('(prefers-color-scheme: dark)').matches);const c=(css('--bg')||(dark?'#0A0D13':'#EEF1F6')).trim();
  P.setBars({color:/^#[0-9a-f]{6}$/i.test(c)?c:(dark?'#0A0D13':'#EEF1F6'),light:!dark}).catch(()=>{})}
-{document.documentElement.setAttribute('translate','no');document.documentElement.classList.add('notranslate');if(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform()){document.documentElement.classList.add('native');const gi=()=>{const P=window.Capacitor.Plugins&&window.Capacitor.Plugins.LydiaWidget;if(P&&P.getInsets)P.getInsets().then(r=>{if(r&&r.top>0)document.documentElement.style.setProperty('--sat',r.top+'px');if(r&&r.bottom!=null)document.documentElement.style.setProperty('--sab',r.bottom+'px')}).catch(()=>{})};gi();setTimeout(gi,600);addEventListener('resize',()=>setTimeout(gi,200))}const _at=applyTheme;applyTheme=function(){_at();syncBars()}}
+{document.documentElement.setAttribute('translate','no');document.documentElement.classList.add('notranslate');if(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform()){document.documentElement.classList.add('native');const gi=()=>{const P=window.Capacitor.Plugins&&window.Capacitor.Plugins.LydiaWidget;if(P&&P.getInsets)P.getInsets().then(r=>{if(r&&r.top>0)document.documentElement.style.setProperty('--sat',r.top+'px');if(r&&r.bottom>0)document.documentElement.style.setProperty('--sab',r.bottom+'px')}).catch(()=>{})};gi();setTimeout(gi,600);addEventListener('resize',()=>setTimeout(gi,200))}const _at=applyTheme;applyTheme=function(){_at();syncBars()}}
 function openLink(url){const k=String(url||'').replace(/^lydia:\/\//,'').replace(/[\/?#].*$/,'');if(QUICK[k])quickFromHash(k);else if(TABS.includes(k)){closeSheet();go(k)}}
 /* ---------- backup sicuro ---------- */
 const NATIVE=()=>!!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform());
@@ -1612,6 +1614,7 @@ $('#eyebtn').onclick=()=>{S.settings.hideAmounts=!S.settings.hideAmounts;save();
 applyCurrency();if(!S.settings.since){S.settings.since=today();save()}
 migrateAccounts();applyTheme();render();startQuotes();askPersist();
 /* tastiera aperta: la finestra sale sopra la tastiera invece di finirci sotto */
+{const R=document.documentElement;let base={},ft=0;const tf=e=>e&&e.matches&&e.matches('input:not([type=checkbox]):not([type=radio]):not([type=file]):not([type=button]):not([type=range]),textarea,[contenteditable]');const chk=()=>{const w=innerWidth;const h=window.visualViewport?Math.min(innerHeight,visualViewport.height):innerHeight;if(!base[w]||h>base[w])base[w]=h;R.classList.toggle('kbopen',h<base[w]-120||(tf(document.activeElement)&&Date.now()-ft<700))};addEventListener('resize',chk);if(window.visualViewport)visualViewport.addEventListener('resize',chk);addEventListener('focusin',e=>{if(tf(e.target)){ft=Date.now();chk();setTimeout(chk,750)}});addEventListener('focusout',()=>setTimeout(chk,80));chk()}
 if(window.visualViewport){const kb=()=>{const vv=visualViewport;const h=Math.max(0,Math.round(innerHeight-vv.height-vv.offsetTop));document.documentElement.style.setProperty('--kb',(h>60?h:0)+'px');if(h>60){const a=document.activeElement;if(a&&a.closest&&a.closest('#sheet'))setTimeout(()=>{try{a.scrollIntoView({block:'nearest'})}catch(e){}},60)}};visualViewport.addEventListener('resize',kb);visualViewport.addEventListener('scroll',kb)}
 if(NATIVE()&&CP('App')){CP('App').addListener('appUrlOpen',e=>openLink(e&&e.url));CP('App').getLaunchUrl().then(r=>{if(r&&r.url)setTimeout(()=>openLink(r.url),300)}).catch(()=>{})}
 if(NATIVE()&&CP('App'))CP('App').addListener('backButton',()=>{if($('#ov').classList.contains('open'))closeSheet();else if(tab!=='home')go('home');else CP('App').exitApp()});if(!quickFromHash(startHash))welcomeFlow();
