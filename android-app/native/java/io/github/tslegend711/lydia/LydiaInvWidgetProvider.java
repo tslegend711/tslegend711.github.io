@@ -194,7 +194,44 @@ public class LydiaInvWidgetProvider extends AppWidgetProvider {
         }
     }
 
+    /** Due misure: alto una riga (solo totale) o più righe (con i titoli). Android 12+ sceglie da solo. */
     static RemoteViews build(Context c) {
+        RemoteViews full = buildFull(c);
+        if (android.os.Build.VERSION.SDK_INT >= 31) {
+            java.util.Map<android.util.SizeF, RemoteViews> m = new java.util.HashMap<>();
+            m.put(new android.util.SizeF(180f, 40f), buildSmall(c));
+            m.put(new android.util.SizeF(180f, 120f), full);
+            return new RemoteViews(m);
+        }
+        return full;
+    }
+
+    static RemoteViews buildSmall(Context c) {
+        RemoteViews v = new RemoteViews(c.getPackageName(), R.layout.lydia_inv_widget_small);
+        JSONObject j = LydiaWidgetProvider.data(c, "inv");
+        boolean pv = LydiaWidgetProvider.priv(c), hid = LydiaWidgetProvider.hidden(c);
+        v.setOnClickPendingIntent(R.id.iv_root, LydiaWidgetProvider.link(c, "patrimonio", 20));
+        v.setViewVisibility(R.id.iv_eye, pv ? View.VISIBLE : View.GONE);
+        v.setImageViewResource(R.id.iv_eye, hid ? R.drawable.lydia_ic_eye : R.drawable.lydia_ic_eye_off);
+        v.setOnClickPendingIntent(R.id.iv_eye, LydiaWidgetProvider.action(c, LydiaWidgetProvider.ACTION_REVEAL, 30));
+        android.content.Intent ri = new android.content.Intent(ACTION_REFRESH);
+        ri.setClass(c, LydiaInvWidgetProvider.class);
+        v.setOnClickPendingIntent(R.id.iv_ref, android.app.PendingIntent.getBroadcast(c, 32, ri, android.app.PendingIntent.FLAG_UPDATE_CURRENT | android.app.PendingIntent.FLAG_IMMUTABLE));
+        if (j == null) {
+            v.setTextViewText(R.id.iv_total, "Apri Lydia");
+            v.setTextViewText(R.id.iv_gain, "");
+            return v;
+        }
+        String upd = j.optString("upd", "");
+        v.setTextViewText(R.id.iv_upd, busy ? "Investimenti · aggiorno…" : "Investimenti" + (upd.length() > 0 ? " · " + upd : ""));
+        v.setTextViewText(R.id.iv_total, hid ? "•••••• €" : j.optString("total", ""));
+        String g = hid ? j.optString("gainp", "") : j.optString("gain", "").replace(" · ", "\n");
+        v.setTextViewText(R.id.iv_gain, g);
+        v.setTextColor(R.id.iv_gain, color(c, j.optInt("sign", 0)));
+        return v;
+    }
+
+    static RemoteViews buildFull(Context c) {
         RemoteViews v = new RemoteViews(c.getPackageName(), R.layout.lydia_inv_widget);
         JSONObject j = LydiaWidgetProvider.data(c, "inv");
         boolean pv = LydiaWidgetProvider.priv(c), hid = LydiaWidgetProvider.hidden(c);
