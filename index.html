@@ -291,6 +291,8 @@ nav.tabs{background:rgba(255,255,255,.42);-webkit-backdrop-filter:blur(24px) sat
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .topbar,:root:not([data-theme="light"]) .topbar.scrolled{background:rgba(22,26,36,.36)}}
 :root[data-theme="dark"] .topbar.scrolled{border-bottom-color:rgba(255,255,255,.12)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .topbar.scrolled{border-bottom-color:rgba(255,255,255,.12)}}
+.homesearch{display:flex;align-items:center;gap:10px;width:100%;margin:0 0 14px;padding:13px 18px;border:1px solid var(--glass-line);border-radius:999px;background:var(--glass);-webkit-backdrop-filter:blur(22px) saturate(150%);backdrop-filter:blur(22px) saturate(150%);color:var(--muted);font:inherit;font-size:1rem;text-align:left;cursor:pointer}
+.homesearch svg{width:20px;height:20px;color:var(--gold)}
 </style>
 </head>
 <body>
@@ -299,7 +301,6 @@ nav.tabs{background:rgba(255,255,255,.42);-webkit-backdrop-filter:blur(24px) sat
   <div class="brand" id="brand" aria-label="Lydia"></div><div class="small" id="smalltitle">Panoramica</div>
   <button class="iconbtn" id="eyebtn" aria-label="Nascondi gli importi" aria-pressed="false"><svg class="i" viewBox="0 0 24 24" id="eyeico"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
   <button class="iconbtn" id="tipsbtn" aria-label="Consigli"><svg class="i" viewBox="0 0 24 24"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.7.7 1 1.5 1 2.5h6c0-1 .3-1.8 1-2.5A6 6 0 0 0 12 3z"/></svg><span class="dot" id="tipdot" hidden></span></button>
-  <button class="iconbtn" id="searchbtn" aria-label="Cerca: cosa vuoi fare?"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg></button>
   <button class="iconbtn" id="gear" aria-label="Impostazioni e backup"><svg class="i" viewBox="0 0 24 24"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/></svg></button>
 </div></header>
 <main><div class="wrap" id="main"></div></main>
@@ -529,19 +530,19 @@ function renderHome(){const main=$('#main');
    ['acc','I tuoi conti',S.accounts.length?esc(S.accounts.map(a=>a.name).join(', ')):'Conto corrente, contanti e carte, con il saldo di oggi',S.accounts.length>0],
    ['res','Riserva di emergenza',st.reserve>0?eur0(st.reserve)+' da non investire':'Quanto tenere da parte, in base al tuo stipendio',st.reserve>0],
    ['mov','Primo movimento','Una spesa o un\'entrata, anche piccola',false]];const nx=steps.findIndex((x,i)=>!x[3]&&!(i===0&&(S.accounts.length||st.reserve>0)));
-  main.innerHTML=bigTitle(st.name?'Ciao '+st.name:'Benvenuto','Stipendio, spese e investimenti, tutto in un posto.')+`
+  main.innerHTML=bigTitle(st.name?'Ciao '+st.name:'Benvenuto','Stipendio, spese e investimenti, tutto in un posto.')+'<button class="homesearch" id="hsearch" type="button"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><span>Cosa vuoi fare?</span></button>'+`
   <section class="blk glass card"><label class="f" style="margin:0">Come ti chiami?<input id="obname" value="${esc(st.name)}" autocomplete="given-name" placeholder="Facoltativo"></label></section>
   <section class="blk glass card"><h2>Primi passi</h2><p class="sub">Tre minuti e sei pronto.</p><div style="margin-top:8px">${steps.map(([k,t,d,done],i)=>`<button class="step ${done?'done':''} ${i===nx?'next':''}" data-step="${k}"><span class="n">${done?'<svg class="i" viewBox="0 0 24 24" style="width:16px;height:16px"><path d="M5 12l5 5 9-10"/></svg>':i+1}</span><span style="min-width:0"><span class="t">${t}</span><span class="s">${d}</span></span><span class="ch" aria-hidden="true">›</span></button>`).join('')}</div></section>
   <section class="blk glass card goldline"><div style="display:flex;gap:12px;align-items:flex-start"><svg class="i" viewBox="0 0 24 24" style="flex:none;color:var(--gold-ink)"><rect x="5" y="11" width="14" height="10"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><div><b>I tuoi dati restano su questo telefono</b><p class="sub" style="margin-top:2px">Nessun account, nessun server. Funziona anche senza internet. <a href="#" id="obpriv" style="color:var(--gold-ink);font-weight:700">Dettagli</a></p></div></div></section>`;
   $('#obname').onchange=e=>{S.settings.name=e.target.value.trim();save();render()};
   $$('[data-step]').forEach(b=>b.onclick=()=>{const k=b.dataset.step;if(k==='imp')pickFiles('',importAny,true);else if(k==='acc')accountsSheet();else if(k==='res')reserveSheet();else S.accounts.length?movForm():accountsSheet(()=>movForm())});
-  $('#obpriv').onclick=e=>{e.preventDefault();privacySheet(false)};return}
+  $('#obpriv').onclick=e=>{e.preventDefault();privacySheet(false)};$('#hsearch').onclick=()=>searchSheet();return}
  const R=periodRange(),cur=agg(inRange(R.a,R.b)),[pa,pb]=R.prev(),prv=agg(inRange(pa,pb));const W=wealth();const nm=Math.max(1,R.months.filter(k=>byMonth(k).length).length);
  const dl=(v,p,goodUp)=>{if(!p)return '<span class="d">Nessun dato nel periodo prima</span>';const d=(v-p)/Math.abs(p);return `<span class="d ${(goodUp?d>=0:d<=0)?'pos':'neg'}">${sPct(d)} sul periodo prima</span>`};
  const tips=insights().filter(x=>x.lv!=='info').slice(0,2);
  const pie=catSpend(inRange(R.a,R.b));const pieTot=sum(pie,x=>x[1]);
  const sh=cur.entrate+cur.netta>0?cur.entrate/(cur.entrate+Math.max(0,cur.netta))*100:50;
- main.innerHTML=bigTitle(hello(),`Patrimonio <b class="num" style="color:var(--ink)">${eur0(W.tot)}</b> tra liquidità, ETF e fondo pensione.`)+backupBanner()+`
+ main.innerHTML=bigTitle(hello(),`Patrimonio <b class="num" style="color:var(--ink)">${eur0(W.tot)}</b> tra liquidità, ETF e fondo pensione.`)+'<button class="homesearch" id="hsearch" type="button"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><span>Cosa vuoi fare?</span></button>'+backupBanner()+`
  <section class="blk"><div class="seg" role="group" aria-label="Periodo">${[['mese','Mese'],['12m','12 mesi'],['anno','Anno']].map(([k,l])=>`<button data-kind="${k}" aria-pressed="${per.kind===k}">${l}</button>`).join('')}</div>
  ${per.kind!=='12m'?`<div class="pernav"><button id="pprev" aria-label="Periodo precedente">‹</button><b>${esc(R.label)}</b><button id="pnext" aria-label="Periodo successivo" ${per.off>=0?'disabled':''}>›</button></div>`:`<div class="pernav"><span class="note">Ultimi 12 mesi completi</span><b class="note" style="text-transform:none">${esc(R.label)}</b></div>`}</section>
  <section class="blk glass hero"><div class="eyebrow">Risparmio del periodo</div><div class="big num ${cur.risp<0?'neg':''}">${sEur0(cur.risp)}</div>
@@ -561,7 +562,7 @@ function renderHome(){const main=$('#main');
   <div class="tiles t4" style="gap:8px">${[['Liquidità',W.cash],['ETF',W.etf],[fundName(),W.cometa],['Debiti',-W.debt]].map(([l,v])=>`<div><div class="lab">${l}</div><div class="num" style="font-weight:800;font-size:1.1rem">${eur0(v)}</div></div>`).join('')}</div></section>`;
  $$('[data-kind]').forEach(b=>b.onclick=()=>{per={kind:b.dataset.kind,off:0};render()});
  if($('#pprev')){$('#pprev').onclick=()=>{per.off--;render()};$('#pnext').onclick=()=>{if(per.off<0){per.off++;render()}}}
- if($('#alltips'))$('#alltips').onclick=()=>go('consigli');bindTipActions();bindBackupBanner();
+ if($('#alltips'))$('#alltips').onclick=()=>go('consigli');bindTipActions();bindBackupBanner();$('#hsearch').onclick=()=>searchSheet();
  $('#gopat').onclick=()=>go('patrimonio');if($('#gacc'))$('#gacc').onclick=()=>accountsSheet();$$('[data-goacc]').forEach(b=>b.onclick=()=>{mf={q:'',t:'all',m:'all',c:'all',a:b.dataset.goacc};go('movimenti')});
  // trend
  const end=per.kind==='anno'?R.months[11]:per.kind==='mese'?R.months[0]:completeMonths();const ks=[];for(let i=11;i>=0;i--)ks.push(shiftK(end,-i));
@@ -1115,7 +1116,7 @@ function fixBalSheet(a){const cur=Math.round(accBal(a)*100)/100;openSheet(`<h3>C
 
 /* ---------- privacy, backup, novità ---------- */
 const APP_VERSION='1.5.0';
-const CHANGELOG=[['1.5.0','8 novembre 2026',["Testi più semplici in tutta l'app","Barra in alto sempre leggibile mentre scorri","Pulsanti e selettori più sobri, grafico della Home più pulito","Widget Movimenti su una riga; widget Investimenti più basso","App Android: barre di sistema dello stesso colore dell'app","Barra in basso sospesa, con la sezione attiva evidenziata","Pulsante + rotondo, in vetro dorato lucido","Angoli arrotondati come su Android","Grafico della Home: entrate in verde e spese in rosso, con barre arrotondate","Barre in alto e in basso più trasparenti, campi selezionati in oro","Cerca (la lente in alto): scrivi cosa vuoi fare, per esempio \"backup\" o \"12 caffè\""]],
+const CHANGELOG=[['1.5.0','8 novembre 2026',["Testi più semplici in tutta l'app","Barra in alto sempre leggibile mentre scorri","Pulsanti e selettori più sobri, grafico della Home più pulito","Widget Movimenti su una riga; widget Investimenti più basso","App Android: barre di sistema dello stesso colore dell'app","Barra in basso sospesa, con la sezione attiva evidenziata","Pulsante + rotondo, in vetro dorato lucido","Angoli arrotondati come su Android","Grafico della Home: entrate in verde e spese in rosso, con barre arrotondate","Barre in alto e in basso più trasparenti, campi selezionati in oro","Cerca nella Home: scrivi cosa vuoi fare, per esempio \"backup\" o \"12 caffè\""]],
  ['1.4.0','8 novembre 2026',["App Android: widget Movimenti, con entrate e uscite del mese e i pulsanti Spesa, Entrata e Giroconto","App Android: widget Investimenti, con valore, guadagno e prezzo di ETF e azioni","App Android: icona di Lydia, anche adattiva e a tema"]],
  ['1.3.0','8 novembre 2026',["Backup su Drive con un tocco, dal menu di condivisione","Backup protetto da password (cifratura AES-256 sul telefono)","Lydia chiede a Chrome di non cancellare mai i suoi dati da sola"]],
  ['1.2.4','8 novembre 2026',["Modalità privacy: l'occhio in alto nasconde o mostra tutti gli importi","Barra in basso: la sezione attiva è in oro, senza riquadro"]],
@@ -1390,7 +1391,7 @@ function settingsSheet(){const st=S.settings;const sec=(t,h)=>`<div style="margi
 
 /* ---------- avvio ---------- */
 $$('nav.tabs button').forEach(b=>b.onclick=()=>go(b.dataset.tab));
-$('#gear').onclick=settingsSheet;$('#searchbtn').onclick=()=>searchSheet();$('#fab').onclick=()=>movForm();
+$('#gear').onclick=settingsSheet;$('#fab').onclick=()=>movForm();
 $('#ov').onclick=e=>{if(e.target.id==='ov')closeSheet()};
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#ov').classList.contains('open'))closeSheet()});
 function quickFromHash(h){if(!QUICK[h])return false;try{history.replaceState(null,'','#home')}catch(e){}tab='home';render();movForm(null,{type:QUICK[h]},true);return true}
