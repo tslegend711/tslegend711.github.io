@@ -15,6 +15,7 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 @CapacitorPlugin(name = "LydiaWidget")
 public class LydiaWidgetPlugin extends Plugin {
     static volatile int topInsetPx = 0;
+    static volatile int bottomInsetPx = 0;
 
     /** Altezza della barra di stato in pixel CSS, per far continuare la barra dell'app sotto l'ora. */
     @PluginMethod
@@ -22,6 +23,7 @@ public class LydiaWidgetPlugin extends Plugin {
         float d = getContext().getResources().getDisplayMetrics().density;
         com.getcapacitor.JSObject r = new com.getcapacitor.JSObject();
         r.put("top", d > 0 ? topInsetPx / d : 0);
+        r.put("bottom", d > 0 ? bottomInsetPx / d : 0);
         call.resolve(r);
     }
 
@@ -51,7 +53,8 @@ public class LydiaWidgetPlugin extends Plugin {
                 Window w = a.getWindow();
                 w.getDecorView().setBackgroundColor(c);
                 w.setStatusBarColor(Color.TRANSPARENT);
-                w.setNavigationBarColor(c);
+                w.setNavigationBarColor(Color.TRANSPARENT);
+                if (android.os.Build.VERSION.SDK_INT >= 29) w.setNavigationBarContrastEnforced(false);
                 WindowInsetsControllerCompat ic = WindowCompat.getInsetsController(w, w.getDecorView());
                 ic.setAppearanceLightStatusBars(light);
                 ic.setAppearanceLightNavigationBars(light);

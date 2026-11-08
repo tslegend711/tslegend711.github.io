@@ -313,6 +313,11 @@ input,textarea,select,[contenteditable]{-webkit-user-select:text;user-select:tex
 .fab::before{background:linear-gradient(rgba(255,255,255,.62),rgba(255,255,255,0))}
 .fab svg,:root[data-theme="dark"] .fab svg{stroke:#2A1F05}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .fab svg{stroke:#2A1F05}}
+:root.native nav.tabs{bottom:calc(10px + var(--sab,0px))}
+:root.native .fab{bottom:calc(92px + var(--sab,0px))}
+:root.native main{padding-bottom:calc(120px + var(--sab,0px))}
+:root.native .sheet{padding-bottom:calc(24px + var(--sab,0px))}
+:root.native{padding-bottom:0!important}
 </style>
 </head>
 <body>
@@ -1306,7 +1311,7 @@ function fixBalSheet(a){const cur=Math.round(accBal(a)*100)/100;openSheet(`<h3>C
 
 /* ---------- privacy, backup, novità ---------- */
 const APP_VERSION='1.7.1';
-const CHANGELOG=[['1.7.1','8 novembre 2026',["Tema scuro: sfondo quasi nero con una luce oro in alto, senza sfumature colorate","App Android: la barra in alto continua sotto l'ora e le notifiche"]],
+const CHANGELOG=[['1.7.1','8 novembre 2026',["Tema scuro: sfondo quasi nero con una luce oro in alto, senza sfumature colorate","App Android: la barra in alto continua sotto l'ora e le notifiche, e lo sfondo continua sotto la barra delle gesture"]],
  ['1.7.0','8 novembre 2026',["Estratto conto della banca: ritrova i movimenti che hai già registrato, ne corregge la data con quella della banca e aggiunge quelli che mancano","Ti mostra anche le spese che hai in Lydia ma non nell'estratto, e confronta il saldo","I movimenti verificati con la banca hanno una spunta verde"]],
  ['1.6.0','8 novembre 2026',["Estratti conto delle carte: carichi il PDF e l'addebito della carta si divide nelle singole spese, ognuna con la sua categoria","Più carte, ognuna con il suo conto e il tipo di pagamento (saldo a fine mese o revolving)","Se l'addebito non è ancora arrivato, l'estratto resta in attesa e si collega da solo","Le categorie che correggi vengono ricordate per i mesi successivi"]],
  ['1.5.0','8 novembre 2026',["Testi più semplici in tutta l'app","Barra in alto sempre leggibile mentre scorri","Pulsanti e selettori più sobri, grafico della Home più pulito","Widget Movimenti su una riga; widget Investimenti più basso","App Android: barre di sistema dello stesso colore dell'app","Barra in basso sospesa, con la sezione attiva evidenziata","Pulsante + rotondo, oro lucido in vetro","Angoli arrotondati come su Android","Grafico della Home: entrate in verde e spese in rosso, con barre arrotondate","Barre in alto e in basso più trasparenti, campi selezionati in oro","Cerca nella Home: scrivi cosa vuoi fare, per esempio \"backup\" o \"12 caffè\""]],
@@ -1343,7 +1348,7 @@ let wTimer;function syncWidget(){if(!(window.Capacitor&&window.Capacitor.isNativ
 function syncBars(){const P=window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform()&&window.Capacitor.Plugins&&window.Capacitor.Plugins.LydiaWidget;if(!P||!P.setBars)return;
  const dark=document.documentElement.getAttribute('data-theme')==='dark'||(!document.documentElement.getAttribute('data-theme')&&matchMedia('(prefers-color-scheme: dark)').matches);const c=(css('--bg')||(dark?'#0A0D13':'#EEF1F6')).trim();
  P.setBars({color:/^#[0-9a-f]{6}$/i.test(c)?c:(dark?'#0A0D13':'#EEF1F6'),light:!dark}).catch(()=>{})}
-{document.documentElement.setAttribute('translate','no');document.documentElement.classList.add('notranslate');if(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform()){document.documentElement.classList.add('native');const gi=()=>{const P=window.Capacitor.Plugins&&window.Capacitor.Plugins.LydiaWidget;if(P&&P.getInsets)P.getInsets().then(r=>{if(r&&r.top>0)document.documentElement.style.setProperty('--sat',r.top+'px')}).catch(()=>{})};gi();setTimeout(gi,600);addEventListener('resize',()=>setTimeout(gi,200))}const _at=applyTheme;applyTheme=function(){_at();syncBars()}}
+{document.documentElement.setAttribute('translate','no');document.documentElement.classList.add('notranslate');if(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform()){document.documentElement.classList.add('native');const gi=()=>{const P=window.Capacitor.Plugins&&window.Capacitor.Plugins.LydiaWidget;if(P&&P.getInsets)P.getInsets().then(r=>{if(r&&r.top>0)document.documentElement.style.setProperty('--sat',r.top+'px');if(r&&r.bottom!=null)document.documentElement.style.setProperty('--sab',r.bottom+'px')}).catch(()=>{})};gi();setTimeout(gi,600);addEventListener('resize',()=>setTimeout(gi,200))}const _at=applyTheme;applyTheme=function(){_at();syncBars()}}
 function openLink(url){const k=String(url||'').replace(/^lydia:\/\//,'').replace(/[\/?#].*$/,'');if(QUICK[k])quickFromHash(k);else if(TABS.includes(k)){closeSheet();go(k)}}
 /* ---------- backup sicuro ---------- */
 const NATIVE=()=>!!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform());

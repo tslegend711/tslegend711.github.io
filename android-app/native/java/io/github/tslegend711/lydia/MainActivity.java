@@ -21,7 +21,10 @@ public class MainActivity extends BridgeActivity {
                 Insets ime = insets.getInsets(WindowInsetsCompat.Type.ime());
                 // in alto niente margine: la barra dell'app continua sotto l'ora e le notifiche
                 LydiaWidgetPlugin.topInsetPx = bars.top;
-                v.setPadding(bars.left, 0, bars.right, Math.max(ime.bottom, bars.bottom));
+                // in basso: sotto la barra delle gesture disegna l'app; con la tastiera aperta lascia spazio alla tastiera
+                boolean kb = ime.bottom > bars.bottom;
+                LydiaWidgetPlugin.bottomInsetPx = kb ? 0 : bars.bottom;
+                v.setPadding(bars.left, 0, bars.right, kb ? ime.bottom : 0);
                 return WindowInsetsCompat.CONSUMED;
             });
         }
