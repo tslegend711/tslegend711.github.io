@@ -178,6 +178,17 @@ tr:last-child td{border-bottom:0}
 .acc-card .sw{width:12px;height:12px;display:inline-block;margin-top:6px}
 .pdfrow{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-top:1px solid var(--glass-line)}
 .pdfrow input{margin-top:4px;width:18px;height:18px;accent-color:var(--gold)}
+.welcome{display:flex;gap:16px;align-items:center;margin:8px 0 18px}
+.welcome svg{flex:none;box-shadow:0 8px 24px rgba(160,132,41,.35)}
+.welcome h1{margin:0;font-size:1.9rem;letter-spacing:-.03em;line-height:1.1}
+.welcome p{margin:4px 0 0;color:var(--muted)}
+.step{display:flex;gap:14px;align-items:center;width:100%;padding:14px 0;border:0;border-top:1px solid var(--glass-line);background:none;color:inherit;text-align:left;font:inherit;cursor:pointer}
+.step .n{width:32px;height:32px;flex:none;display:grid;place-items:center;border:1.5px solid var(--glass-line);color:var(--muted);font-weight:800}
+.step.next .n{border-color:var(--gold);color:var(--gold-ink)}
+.step.done .n{background:var(--gold-grad);border-color:transparent;color:#0B1020}
+.step .t{display:block;font-weight:700}.step .s{display:block;font-size:.85rem;color:var(--muted);margin-top:1px}
+.step.done .t{color:var(--muted)}
+.step .ch{margin-left:auto;font-size:1.4rem;color:var(--muted)}.step.next .ch{color:var(--gold-ink)}
 .priv .k{width:28px;height:28px;flex:none;display:grid;place-items:center;background:var(--gold-grad);color:#0B1020;font-weight:800;font-size:.8rem}
 .btn.sm{padding:7px 12px;font-size:.84rem}
 .btn.block{width:100%}
@@ -437,7 +448,7 @@ function bigTitle(t,sub){return `<div class="bigtitle"><h1>${esc(t)}</h1>${sub?`
 function render(){
  $$('nav.tabs button').forEach(b=>b.setAttribute('aria-current',b.dataset.tab===tab?'page':'false'));
  $('#smalltitle').textContent=tab==='home'?'':TITLES[tab][0];document.title=TITLES[tab][0]+' · '+APPNAME;
- $('#fab').hidden=!(tab==='home'||tab==='movimenti');
+ $('#fab').hidden=!(tab==='home'||tab==='movimenti')||(tab==='home'&&!S.movs.length&&!S.etfs.length);
  chartBase();
  ({home:renderHome,movimenti:renderMov,conti:renderConti,stipendi:renderSal,patrimonio:renderPat,consigli:renderTips})[tab]();
  $('#tipsbtn').setAttribute('aria-current',tab==='consigli'?'page':'false');
@@ -451,11 +462,18 @@ function periodRange(){const k=per.kind;
  const end=completeMonths(),ms=[];for(let i=11;i>=0;i--)ms.push(shiftK(end,-i));
  return{a:ms[0]+'-01',b:end+'-31',label:`${shortK(ms[0])} – ${shortK(end)}`,prev:()=>[shiftK(ms[0],-12)+'-01',shiftK(end,-12)+'-31'],months:ms}}
 function renderHome(){const main=$('#main');
- if(!S.movs.length&&!S.etfs.length){main.innerHTML=bigTitle(hello(),'Benvenuto. I dati restano solo su questo dispositivo: nessun account, nessun server.')+`<div class="glass card"><h2>Da dove vuoi partire?</h2><p class="sub">Puoi cambiare tutto più tardi dalle impostazioni.</p><label class="f" style="margin-top:12px">Come ti chiami? (facoltativo)<input id="obname" value="${esc(S.settings.name)}" autocomplete="given-name"></label><div class="actions" style="flex-direction:column"><button class="btn" id="obacc">${S.accounts.length?'I tuoi conti: '+esc(S.accounts.map(a=>a.name).join(', ')):'1. Aggiungi i tuoi conti'}</button><button class="btn ghost" id="obres">${S.settings.reserve>0?'Riserva di emergenza: '+eur0(S.settings.reserve):'2. Stipendio e riserva di emergenza'}</button><button class="btn ghost" id="goadd">${S.accounts.length?'Registra il primo movimento':'3. Registra il primo movimento'}</button><button class="btn ghost" id="obbp">Carica le buste paga (PDF)</button><button class="btn ghost" id="obext">Importa da un'altra app (backup .zip)</button><button class="btn ghost" id="obcsv">Importa movimenti da CSV</button><button class="btn ghost" id="obrest">Ripristina un backup di Lydia</button></div></div>
- <section class="blk glass card goldline"><h2>Privacy</h2><p class="sub">Nessun dato viene inviato agli sviluppatori: tutto resta su questo telefono e funziona offline. Ricordati di scaricare un backup ogni tanto.</p><div class="actions"><button class="btn ghost sm" id="obpriv">Come vengono trattati i dati</button></div></section>`;
- $('#obacc').onclick=()=>accountsSheet();
- $('#obname').onchange=e=>{S.settings.name=e.target.value.trim();save()};
- $('#obext').onclick=()=>pickFiles('',importAny);$('#obcsv').onclick=()=>pickFiles('',importAny);$('#obrest').onclick=()=>pickFiles('',importAny);$('#obbp').onclick=()=>pickFiles('.pdf,application/pdf',importPayslips,true);$('#obres').onclick=()=>reserveSheet();$('#obpriv').onclick=()=>privacySheet(false);$('#goadd').onclick=()=>S.accounts.length?movForm():accountsSheet(()=>movForm());return}
+ if(!S.movs.length&&!S.etfs.length){const st=S.settings;
+  const steps=[['acc','I tuoi conti',S.accounts.length?esc(S.accounts.map(a=>a.name).join(', ')):'Conto corrente, contanti e carte, con il saldo di oggi',S.accounts.length>0],
+   ['res','Riserva di emergenza',st.reserve>0?eur0(st.reserve)+' da non investire':'Quanto tenere da parte, in base al tuo stipendio',st.reserve>0],
+   ['mov','Primo movimento','Una spesa o un\'entrata: da lì partono grafici e consigli',false]];const nx=steps.findIndex(x=>!x[3]);
+  main.innerHTML=`<section class="welcome">${LOGO(64)}<div><h1>${st.name?'Ciao '+esc(st.name):'Benvenuto in Lydia'}</h1><p>Stipendio, spese, conti e investimenti in un posto solo.</p></div></section>
+  <section class="blk glass card"><label class="f" style="margin:0">Come ti chiami?<input id="obname" value="${esc(st.name)}" autocomplete="given-name" placeholder="Facoltativo"></label></section>
+  <section class="blk glass card"><h2>Primi passi</h2><p class="sub">Tre minuti per partire.</p><div style="margin-top:8px">${steps.map(([k,t,d,done],i)=>`<button class="step ${done?'done':''} ${i===nx?'next':''}" data-step="${k}"><span class="n">${done?'<svg class="i" viewBox="0 0 24 24" style="width:16px;height:16px"><path d="M5 12l5 5 9-10"/></svg>':i+1}</span><span style="min-width:0"><span class="t">${t}</span><span class="s">${d}</span></span><span class="ch" aria-hidden="true">›</span></button>`).join('')}</div></section>
+  <section class="blk glass card"><h2>Hai già dei dati?</h2><p class="sub">Backup .zip o .json di un'altra app, backup di Lydia, file CSV o buste paga in PDF: riconosco io il tipo di file.</p><div class="actions"><button class="btn gold" id="obimp">Importa un file</button></div></section>
+  <section class="blk glass card goldline"><div style="display:flex;gap:12px;align-items:flex-start"><svg class="i" viewBox="0 0 24 24" style="flex:none;color:var(--gold-ink)"><rect x="5" y="11" width="14" height="10"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><div><b>I tuoi dati restano su questo telefono</b><p class="sub" style="margin-top:2px">Niente account, niente server, nulla agli sviluppatori. Funziona offline. <a href="#" id="obpriv" style="color:var(--gold-ink);font-weight:700">Dettagli</a></p></div></div></section>`;
+  $('#obname').onchange=e=>{S.settings.name=e.target.value.trim();save();render()};
+  $$('[data-step]').forEach(b=>b.onclick=()=>{const k=b.dataset.step;if(k==='acc')accountsSheet();else if(k==='res')reserveSheet();else S.accounts.length?movForm():accountsSheet(()=>movForm())});
+  $('#obimp').onclick=()=>pickFiles('',importAny,true);$('#obpriv').onclick=e=>{e.preventDefault();privacySheet(false)};return}
  const R=periodRange(),cur=agg(inRange(R.a,R.b)),[pa,pb]=R.prev(),prv=agg(inRange(pa,pb));const W=wealth();const nm=Math.max(1,R.months.filter(k=>byMonth(k).length).length);
  const dl=(v,p,goodUp)=>{if(!p)return '<span class="d">Nessun dato nel periodo prima</span>';const d=(v-p)/Math.abs(p);return `<span class="d ${(goodUp?d>=0:d<=0)?'pos':'neg'}">${sPct(d)} sul periodo prima</span>`};
  const tips=insights().filter(x=>x.lv!=='info').slice(0,2);
@@ -968,8 +986,9 @@ function fixBalSheet(a){const cur=Math.round(accBal(a)*100)/100;openSheet(`<h3>C
  $('#fxx').onclick=closeSheet;$('#fxs').onclick=()=>{const v=parseNum($('#fxv').value);if(isNaN(v)){toast('Scrivi un importo');return}setAccBal(a,v);save();closeSheet();render();toast(`Saldo di ${a.name} aggiornato`)}}
 
 /* ---------- privacy, backup, novità ---------- */
-const APP_VERSION='1.2.0';
-const CHANGELOG=[['1.2.0','8 novembre 2026',["Nuova sezione Conti: saldo di ogni conto, entrate e uscite del mese, andamento degli ultimi sei mesi","Buste paga lette in automatico dal PDF, direttamente sul telefono; resta l'inserimento a mano","Calcolo della riserva di emergenza da stipendio, spese e tipo di contratto","Import dei backup .zip senza connessione, scegliendo il file da qualsiasi cartella","Promemoria del backup e schermata sulla privacy","Grafici disegnati dall'app: nessuna libreria o font esterno, tutto funziona offline","Impostazioni riorganizzate, con la scelta della valuta","Dettagli color oro come il logo"]],
+const APP_VERSION='1.2.1';
+const CHANGELOG=[['1.2.1','8 novembre 2026',["La tastiera non si chiude più mentre scrivi","Riserva di emergenza: puoi scrivere tu la cifra","Gli aggiornamenti arrivano subito, senza aspettare la cache","Nuova schermata iniziale: tre passi numerati e un solo pulsante per importare"]],
+ ['1.2.0','8 novembre 2026',["Nuova sezione Conti: saldo di ogni conto, entrate e uscite del mese, andamento degli ultimi sei mesi","Buste paga lette in automatico dal PDF, direttamente sul telefono; resta l'inserimento a mano","Calcolo della riserva di emergenza da stipendio, spese e tipo di contratto","Import dei backup .zip senza connessione, scegliendo il file da qualsiasi cartella","Promemoria del backup e schermata sulla privacy","Grafici disegnati dall'app: nessuna libreria o font esterno, tutto funziona offline","Impostazioni riorganizzate, con la scelta della valuta","Dettagli color oro come il logo"]],
  ['1.1.0','7 novembre 2026',["Più conti (conto corrente, contanti, carte, depositi) con saldi automatici","Giroconti tra i conti","Scorciatoie dall'icona: spesa, entrata, giroconto","Nuovo nome e nuova icona: Lydia"]],
  ['1.0.0','6 novembre 2026',["Prima versione: movimenti, stipendi, patrimonio, ETF, fondo pensione e consigli","Tema chiaro e scuro","Import da CSV e da backup di altre app, export e backup completo"]]];
 function changelogSheet(then){openSheet(`<h3>Novità di Lydia</h3>${CHANGELOG.map(([v,d,l])=>`<div class="priv"><span class="k" style="width:auto;padding:0 8px">${v}</span><div><b>${esc(d)}</b><ul class="note" style="margin:4px 0 0;padding-left:18px">${l.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div></div>`).join('')}<div class="actions"><button class="btn gold" id="clok">Ok</button></div>`);
