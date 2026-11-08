@@ -272,6 +272,8 @@ function accGuess(n){return /contant|cash|portafogl/i.test(n)?'contanti':/carta|
 function movDelta(m,name){const a=+m.amount||0;let d=0;if(m.acct===name)d+=m.type==='in'?a:-a;if(m.type==='tr'&&m.to===name)d+=a;return d}
 function accFlow(name){return sum(S.movs,m=>movDelta(m,name))}
 function accBal(a){return(+a.adj||0)+accFlow(a.name)}
+/* un movimento con data uguale o precedente all'ultimo saldo verificato è già compreso in quel saldo: non lo cambia */
+function keepVerified(m){for(const n of[m.acct,m.to]){const a=n&&S.accounts.find(x=>x.name===n);if(a&&a.setOn&&m.date<=a.setOn)a.adj=Math.round(((+a.adj||0)-movDelta(m,a.name))*100)/100}}
 function setAccBal(a,v){a.adj=Math.round((v-accFlow(a.name))*100)/100;a.setOn=today();delete a.auto}
 function migrateAccounts(){if(S.accounts.length||!S.movs.length)return;const used=new Set(S.movs.flatMap(m=>[m.acct,m.to]).filter(Boolean));
  const names=[...new Set([...(S.settings.accounts||[]),...used])].filter(n=>used.has(n));if(!names.length)return;
@@ -545,7 +547,7 @@ function movForm(m,preset,quick){const isNew=!m;const d=m?{...m}:{id:uid(),type:
  const acc=accounts().length?accounts():[mainAcct()];const opt=v=>acc.map(a=>`<option ${a===v?'selected':''}>${esc(a)}</option>`).join('');
  openSheet(`<h3>${isNew?'Nuovo movimento':'Modifica movimento'}</h3>
  <div class="seg" id="ftype" role="group" aria-label="Tipo">${[['out','Spesa'],['in','Entrata'],['tr','Giroconto'],['inv','Investim.']].map(([k,l])=>`<button data-v="${k}" aria-pressed="${type===k}">${l}</button>`).join('')}</div>
- <label class="f" style="margin-top:14px">Importo in euro<input id="famt" class="amount num" inputmode="decimal" autocomplete="off" placeholder="0,00" value="${numIn(d.amount)}"></label>
+ <label class="f" style="margin-top:14px">Importo (${CS()})<input id="famt" class="amount num" inputmode="decimal" autocomplete="off" placeholder="0,00" value="${numIn(d.amount)}"></label>
  <div class="f" id="fcatw">Categoria<div class="cats" id="fcats"></div><input id="fcatnew" placeholder="Oppure scrivi una nuova categoria"></div>
  <label class="f" id="faccw">Conto<select id="facc">${opt(d.acct)}</select></label>
  <div class="f2" id="ftrw"><label class="f">Da<select id="ffrom">${opt(d.acct)}</select></label><label class="f">A<select id="fto">${opt(d.to||'Contanti')}</select></label></div>
@@ -561,7 +563,7 @@ function movForm(m,preset,quick){const isNew=!m;const d=m?{...m}:{id:uid(),type:
  const doSave=again=>{const amt=parseNum($('#famt').value);if(!(amt>0)){toast('Inserisci un importo maggiore di zero');return}const date=$('#fdate').value;if(!date){toast('Scegli una data');return}
   let rec;if(type==='tr'){const f=$('#ffrom').value,t=$('#fto').value;if(f===t){toast('Scegli due conti diversi');return}rec={id:d.id,type:'tr',amount:Math.round(amt*100)/100,date,cat:'Giroconto',desc:$('#fdesc').value.trim(),acct:f,to:t}}
   else{rec={id:d.id,type,amount:Math.round(amt*100)/100,date,cat:$('#fcatnew').value.trim()||cat||'Altro',desc:$('#fdesc').value.trim(),acct:$('#facc').value||d.acct||mainAcct()};if(type==='out'&&$('#fstraord').checked)rec.straord=true}
-  const i=S.movs.findIndex(x=>x.id===d.id);if(i>=0)S.movs[i]=rec;else S.movs.push(rec);save();render();
+  const i=S.movs.findIndex(x=>x.id===d.id);if(i>=0)S.movs[i]=rec;else{S.movs.push(rec);keepVerified(rec)}save();render();
   const lbl=type==='tr'?`Giroconto ${rec.acct} → ${rec.to}`:type==='in'?'Entrata':type==='inv'?'Investimento':'Spesa';
   if(again){movForm(null,{type,date,cat:type==='tr'?'':rec.cat,acct:rec.acct,to:rec.to},true);toast(`${lbl} di ${eur(rec.amount)} salvata`)}else{closeSheet();toast(`${lbl} di ${eur(rec.amount)} salvata`)}};
  $('#fsave').onclick=()=>doSave(false);if(isNew)$('#fagain').onclick=()=>doSave(true);
@@ -679,36 +681,52 @@ function parsePayslip(lines,fname){const out={},found={};
  if(hasO)out.ore=Math.round(ore*100)/100;if(tr)out.trasferte=Math.round(tr*100)/100;if(rb)out.rimborsi=Math.round(rb*100)/100;
  const az=lines[0]&&lines.slice(0,4).flatMap(l=>l.cells).find(c=>/S\.?P\.?A\.?|S\.?R\.?L\.?|S\.?N\.?C\.?|S\.?A\.?S\.?/.test(c.s)&&c.s.length<60);if(az)out.azienda=az.s.replace(/\s+/g,' ');
  return{rec:out,found}}
-async function importPayslips(files){if(!files.length)return;toast(files.length>1?`Leggo ${files.length} PDF…`:'Leggo il PDF…',15000);const res=[];
- for(const f of files){try{if(f.size>20*1024*1024)throw new Error('File troppo grande');const L=await pdfLines(await f.arrayBuffer());if(!L.length)throw new Error('Nel PDF non c\'è testo: forse è una foto o una scansione');
+async function importPayslips(files){if(!files.length)return;if(!S.accounts.length){accountsSheet(()=>importPayslips(files),'Prima crea il conto dove ti arriva lo stipendio: poi leggo la busta paga.');return}
+ busy(true,files.length>1?`Leggo ${files.length} buste paga…`:'Leggo la busta paga…');const res=[];const withTO=(pr,ms)=>Promise.race([pr,new Promise((_,rej)=>setTimeout(()=>rej(new Error('Il PDF è troppo complesso da leggere')),ms))]);
+ for(const f of files){try{if(f.size>20*1024*1024)throw new Error('File troppo grande');const L=await withTO(pdfLines(await f.arrayBuffer()),20000);if(!L.length)throw new Error('Nel PDF non c\'è testo: forse è una foto o una scansione');
    const r=parsePayslip(L,f.name);if(!r.found.netto)throw new Error('Non trovo il netto in busta');res.push({f,...r})}catch(e){res.push({f,err:e.message||'PDF non leggibile'})}}
- $('#toast').classList.remove('show');const ok=res.filter(r=>!r.err);
+ busy(false);const ok=res.filter(r=>!r.err);
  if(files.length===1){if(ok.length)payslipForm(null,ok[0]);else toast(res[0].err+'. Puoi inserirla a mano.',6000);return}
  openSheet(`<h3>Buste paga dai PDF</h3><p class="note" style="margin-top:-6px">Letti sul telefono, nessun file viene inviato. Controlla i valori: puoi correggerli dopo, toccando la busta paga.</p>
  <div id="pdfl" style="margin-top:10px">${res.map((r,i)=>r.err?`<div class="pdfrow"><span class="neg" style="font-weight:800">!</span><div><b>${esc(r.f.name)}</b><div class="note">${esc(r.err)}</div></div></div>`:
   `<label class="pdfrow"><input type="checkbox" data-i="${i}" checked><div style="flex:1;min-width:0"><div style="display:flex;justify-content:space-between;gap:8px"><b style="text-transform:capitalize">${r.rec.month?esc(monthLabel(r.rec.month)):'Mese non trovato'}</b><b class="num">${eur(r.rec.netto)}</b></div>
   <div class="note">Lordo ${r.rec.lordo!=null?eur0(r.rec.lordo):'–'} · IRPEF ${r.rec.irpef!=null?eur0(r.rec.irpef):'–'} · contributi ${r.rec.contributi!=null?eur0(r.rec.contributi):'–'}${r.rec.month&&S.payslips.some(p=>p.month===r.rec.month)?' · <b>sostituisce quella già salvata</b>':''}</div></div></label>`).join('')}</div>
+ ${ok.length?`<div class="glass" style="padding:12px;margin-top:12px;border-color:var(--gold)"><label style="display:flex;gap:10px;align-items:center;font-weight:700"><input type="checkbox" id="pkon" checked style="width:18px;height:18px;accent-color:var(--gold)">Registra gli accrediti sul conto</label><label class="f" style="margin-top:8px">Conto<select id="pkacc">${S.accounts.map(a=>`<option ${a.name===salaryAccount()?'selected':''}>${esc(a.name)}</option>`).join('')}</select></label><p class="note" style="margin:0">Data: ultimo giorno del mese. I mesi che hanno già uno stipendio registrato vengono saltati.</p></div>`:''}
  <div class="actions"><button class="btn ghost" id="pdx">Annulla</button><button class="btn gold" id="pds" ${ok.length?'':'disabled'}>Salva</button></div>`);
- $('#pdx').onclick=closeSheet;$('#pds').onclick=()=>{let n=0;$$('#pdfl input:checked').forEach(c=>{const r=res[+c.dataset.i];if(!r.rec.month)return;storePayslip(payslipFromParse(r.rec));n++});save();closeSheet();go('stipendi');toast(n?`Salvate ${n} buste paga`:'Nessuna busta paga salvata (mese mancante)',4000)}}
+ $('#pdx').onclick=closeSheet;$('#pds').onclick=()=>{let n=0,c=0;const on=$('#pkon')&&$('#pkon').checked,ac=on?$('#pkacc').value:'';$$('#pdfl input:checked').forEach(x=>{const r=res[+x.dataset.i];if(!r.rec.month)return;const p=payslipFromParse(r.rec);storePayslip(p);n++;if(on&&!salaryCredited(p.month)){addCredit(p,ac,payDay(p.month));c++}});save();closeSheet();go('stipendi');toast(n?`Salvate ${n} buste paga${c?`, ${c} accrediti registrati su ${ac}`:''}`:'Nessuna busta paga salvata (mese mancante)',5000)}}
+/* accredito dello stipendio: ogni busta paga finisce su un conto */
+function salaryCredited(month){const n=shiftK(month,1);return S.movs.find(m=>kind(m)==='stip'&&(m.date.startsWith(month)||m.date.startsWith(n)&&m.date.slice(8)<='10'))}
+function salaryAccount(){const last=S.movs.filter(m=>kind(m)==='stip').sort((a,b)=>a.date<b.date?1:-1)[0];const n=last&&S.accounts.find(a=>a.name===last.acct);return n?n.name:mainAcct()}
+function payDay(month){const d=new Date(+month.slice(0,4),+month.slice(5,7),0);const t=iso(d);return t>today()&&month===curK()?today():t}
+function creditHTML(month,pre){const had=salaryCredited(month);return `<div class="glass" style="padding:12px;margin-top:12px;border-color:var(--gold)"><label style="display:flex;gap:10px;align-items:center;font-weight:700"><input type="checkbox" id="${pre}on" ${had?'':'checked'} style="width:18px;height:18px;accent-color:var(--gold)">Registra l'accredito sul conto</label>
+ ${had?`<p class="note" style="margin:6px 0 0">C'è già uno stipendio del ${fmtDate(had.date)} su ${esc(had.acct)} per ${eur(had.amount)}.</p>`:''}
+ <div class="f2" style="margin-top:8px"><label class="f">Conto<select id="${pre}acc">${S.accounts.map(a=>`<option ${a.name===salaryAccount()?'selected':''}>${esc(a.name)}</option>`).join('')}</select></label><label class="f">Data dell'accredito<input id="${pre}date" type="date" value="${payDay(month)}"></label></div>
+ <p class="note" style="margin:0">Il netto meno i rimborsi spese entra come Stipendio; i rimborsi come Rimborso, sullo stesso conto.</p></div>`}
+function addCredit(p,acct,date){const sal=Math.round((p.netto-(p.rimborsi||0))*100)/100,lab=monthLabel(p.month);const out=[];
+ if(sal>0)out.push({id:uid(),date,type:'in',cat:'Stipendio',desc:'Stipendio '+lab,amount:sal,acct});
+ if(p.rimborsi>0)out.push({id:uid(),date,type:'in',cat:'Rimborso',desc:'Rimborso spese in busta paga · '+lab,amount:Math.round(p.rimborsi*100)/100,acct});S.movs.push(...out);out.forEach(keepVerified);return out.length}
 function payslipFromParse(r){return{id:uid(),month:r.month||curK(),netto:r.netto||0,lordo:r.lordo||0,trattenute:r.trattenute||0,irpef:r.irpef||0,contributi:r.contributi||0,ore:r.ore||0,trasferte:r.trasferte||0,rimborsi:r.rimborsi||0,note:r.azienda?r.azienda.toLowerCase().replace(/(^|\s)\S/g,c=>c.toUpperCase()):''}}
 function storePayslip(rec){const i=S.payslips.findIndex(x=>x.id===rec.id);const j=S.payslips.findIndex(x=>x.month===rec.month&&x.id!==rec.id);
  if(i>=0)S.payslips[i]=rec;else if(j>=0){rec.id=S.payslips[j].id;S.payslips[j]=rec}else S.payslips.push(rec)}
-function payslipForm(p,parsed){const isNew=!p;const d=p||(parsed?payslipFromParse(parsed.rec):{id:uid(),month:curK(),netto:'',lordo:'',trattenute:'',irpef:'',contributi:'',ore:'',trasferte:'',rimborsi:'',note:''});
+function payslipForm(p,parsed){if(!p&&!S.accounts.length){accountsSheet(()=>payslipForm(p,parsed),'Prima crea il conto dove ti arriva lo stipendio: poi inserisci la busta paga.');return}const isNew=!p;const d=p||(parsed?payslipFromParse(parsed.rec):{id:uid(),month:curK(),netto:'',lordo:'',trattenute:'',irpef:'',contributi:'',ore:'',trasferte:'',rimborsi:'',note:''});
  const miss=parsed?[['month','mese'],['lordo','totale competenze'],['trattenute','totale trattenute'],['irpef','IRPEF'],['contributi','contributi']].filter(([k])=>!parsed.found[k]).map(x=>x[1]):[];
  const fld=(id,l,v)=>`<label class="f">${l}<input id="${id}" inputmode="decimal" value="${numIn(v)}"></label>`;
- openSheet(`<h3>${parsed?'Busta paga dal PDF':isNew?'Nuova busta paga':'Busta paga'}</h3>${parsed?`<p class="note" style="margin-top:-6px">Letta sul telefono da ${esc(parsed.f.name)}. Controlla i valori prima di salvare${miss.length?`: non ho trovato ${esc(miss.join(', '))}`:''}.${S.payslips.some(x=>x.month===d.month)?' Esiste già una busta paga di questo mese: verrà sostituita.':''}</p>`:''}
+ openSheet(`<h3>${parsed?'Busta paga dal PDF':isNew?'Nuova busta paga':'Busta paga'}</h3>${parsed?`<p class="note" style="margin-top:-6px">Letta sul telefono, il file non è stato inviato da nessuna parte. Controlla i valori prima di salvare${miss.length?`: non ho trovato ${esc(miss.join(', '))}`:''}.${S.payslips.some(x=>x.month===d.month)?' Esiste già una busta paga di questo mese: verrà sostituita.':''}</p>`:''}
  <div class="f2"><label class="f">Mese<input id="bm" type="month" value="${d.month}"></label>${fld('bn',`Netto in busta (${CS()})`,d.netto)}</div>
  <div class="f2">${fld('bl',`Totale competenze (${CS()})`,d.lordo)}${fld('bt',`Totale trattenute (${CS()})`,d.trattenute)}</div>
  <div class="f2">${fld('bi',`IRPEF (${CS()})`,d.irpef)}${fld('bc',`Contributi (${CS()})`,d.contributi)}</div>
  <div class="f2">${fld('bo','Ore di straordinario',d.ore)}${fld('btr',`Trasferte (${CS()})`,d.trasferte)}</div>
  <div class="f2">${fld('br',`Rimborsi spese (${CS()})`,d.rimborsi)}<label class="f">Note<input id="bno" value="${esc(d.note||'')}"></label></div>
- <div class="actions">${isNew?'':'<button class="btn danger" id="bdel">Elimina</button>'}${isNew?'':'<button class="btn ghost" id="bacc">Registra accredito</button>'}<button class="btn" id="bsave">Salva</button></div>`);
+ ${isNew&&S.accounts.length?creditHTML(d.month,'bk'):''}
+ <div class="actions">${isNew?'':'<button class="btn danger" id="bdel">Elimina</button>'}${isNew?'':'<button class="btn ghost" id="bacc">Registra accredito</button>'}<button class="btn gold" id="bsave">Salva</button></div>`);
+ if($('#bkon'))$('#bm').onchange=()=>{const v=$('#bm').value;if(v)$('#bkdate').value=payDay(v)};
  const val=id=>{const v=parseNum($(id).value);return isNaN(v)?0:v};
  $('#bsave').onclick=()=>{const rec={id:d.id,month:$('#bm').value||curK(),netto:val('#bn'),lordo:val('#bl'),trattenute:val('#bt'),irpef:val('#bi'),contributi:val('#bc'),ore:val('#bo'),trasferte:val('#btr'),rimborsi:val('#br'),note:$('#bno').value.trim()};
-  if(!(rec.netto>0)){toast('Inserisci il netto in busta');return}storePayslip(rec);save();closeSheet();if(tab!=='stipendi')go('stipendi');else render();toast('Busta paga salvata')};
+  if(!(rec.netto>0)){toast('Inserisci il netto in busta');return}storePayslip(rec);let n=0,ac='';if($('#bkon')&&$('#bkon').checked){ac=$('#bkacc').value;n=addCredit(rec,ac,$('#bkdate').value||payDay(rec.month))}save();closeSheet();if(tab!=='stipendi')go('stipendi');else render();toast(n?`Busta paga salvata, accredito di ${eur(rec.netto)} registrato su ${ac}`:'Busta paga salvata',4500)};
  if(!isNew){$('#bdel').onclick=async()=>{if(await ask('Eliminare la busta paga?',monthLabel(d.month),'Elimina',true)){S.payslips=S.payslips.filter(x=>x.id!==d.id);save();render()}};
   $('#bacc').onclick=()=>addSalaryFromPayslip(d)}}
-function addSalaryFromPayslip(p){const lastDay=new Date(+p.month.slice(0,4),+p.month.slice(5,7),0);movForm(null,{type:'in',cat:'Stipendio',amount:Math.round((p.netto-(p.rimborsi||0))*100)/100,date:iso(lastDay),desc:'Stipendio '+monthLabel(p.month)});
+function addSalaryFromPayslip(p){if(S.accounts.length){openSheet(`<h3>Accredito di ${esc(monthLabel(p.month))}</h3><p class="note" style="margin-top:-6px">Netto in busta ${eur(p.netto)}.</p>${creditHTML(p.month,'ak')}<div class="actions"><button class="btn ghost" id="akx">Annulla</button><button class="btn gold" id="aks">Registra</button></div>`);$('#akon').checked=true;$('#akx').onclick=closeSheet;$('#aks').onclick=()=>{const ac=$('#akacc').value;addCredit(p,ac,$('#akdate').value||payDay(p.month));save();closeSheet();render();toast(`Accredito registrato su ${ac}`)};return}
+ const lastDay=new Date(+p.month.slice(0,4),+p.month.slice(5,7),0);movForm(null,{type:'in',cat:'Stipendio',amount:Math.round((p.netto-(p.rimborsi||0))*100)/100,date:iso(lastDay),desc:'Stipendio '+monthLabel(p.month)});
  if(p.rimborsi)toast('Registra a parte il rimborso spese di '+eur(p.rimborsi)+' come Rimborso',5000)}
 
 /* ---------- PATRIMONIO ---------- */
@@ -759,8 +777,8 @@ function renderPat(){const main=$('#main');const W=wealth(),R=etfRows(),s=S.sett
   $('#pjtab').innerHTML=`<div class="scrollx"><table><thead><tr><th>Scenario</th><th>Lordo</th><th>Netto dopo il 26%</th></tr></thead><tbody>${rates.map(([r,l],i)=>{const f=series[i][Y];return `<tr><td>${l}</td><td class="num">${eur0(f)}</td><td class="num"><b>${eur0(f-Math.max(0,f-(C+C0*Y))*.26)}</b></td></tr>`}).join('')}</tbody></table></div><p class="note" style="margin-top:6px">Versato in tutto ${eur0(C+C0*Y)}. Il bollo dello 0,20% annuo non è incluso.</p>`};
  $('#pjc').onchange=drawProj;$('#pjy').onchange=drawProj;drawProj();
 }
-function accountsSheet(after){let list=S.accounts.map(a=>({...a,bal:Math.round(accBal(a)*100)/100}));
- const draw=()=>{openSheet(`<h3>I tuoi conti</h3><p class="note" style="margin-top:-6px">Conti correnti, contanti, carte e depositi. Il saldo si aggiorna da solo con i movimenti: qui lo correggi se non torna con la banca.</p>
+function accountsSheet(after,why){let list=S.accounts.map(a=>({...a,bal:Math.round(accBal(a)*100)/100}));if(!list.length)list.push({id:uid(),name:'',type:'conto',adj:0,bal:'',isNew:true});
+ const draw=()=>{openSheet(`<h3>I tuoi conti</h3>${why?`<p class="note" style="margin:-6px 0 8px;color:var(--gold-ink);font-weight:700">${esc(why)}</p>`:''}<p class="note" style="margin-top:-6px">In Lydia tutto passa dai conti: ogni spesa, entrata e stipendio parte o arriva su uno di questi. Conti correnti, contanti, carte e depositi. Il saldo si aggiorna da solo con i movimenti: qui lo correggi se non torna con la banca.</p>
  <div id="accl">${list.map(a=>`<div class="glass" style="padding:12px;margin-top:10px" data-a="${a.id}"><div class="f2"><label class="f">Nome<input class="an" value="${esc(a.name)}" placeholder="Per esempio Banca Generali"></label><label class="f">Tipo<select class="at">${ACC_TYPES.map(([k,l])=>`<option value="${k}" ${a.type===k?'selected':''}>${l}</option>`).join('')}</select></label></div><label class="f">Saldo attuale (${CS()})<input class="ab" inputmode="decimal" value="${numIn(a.bal)}" placeholder="0,00"></label><button class="btn danger sm" type="button" data-del="${a.id}">Elimina</button></div>`).join('')||'<p class="note" style="margin-top:10px">Nessun conto. Aggiungi almeno il tuo conto corrente.</p>'}</div>
  <div class="actions"><button class="btn ghost" id="aadd">Aggiungi conto</button><button class="btn" id="asv">Salva</button></div>`);
   const collect=()=>{list=[...$$('#accl [data-a]')].map(r=>{const o=list.find(x=>x.id===r.dataset.a);const b=parseNum(r.querySelector('.ab').value);return{...o,name:r.querySelector('.an').value.trim(),type:r.querySelector('.at').value,bal:isNaN(b)?0:b}})};
@@ -986,8 +1004,9 @@ function fixBalSheet(a){const cur=Math.round(accBal(a)*100)/100;openSheet(`<h3>C
  $('#fxx').onclick=closeSheet;$('#fxs').onclick=()=>{const v=parseNum($('#fxv').value);if(isNaN(v)){toast('Scrivi un importo');return}setAccBal(a,v);save();closeSheet();render();toast(`Saldo di ${a.name} aggiornato`)}}
 
 /* ---------- privacy, backup, novità ---------- */
-const APP_VERSION='1.2.1';
-const CHANGELOG=[['1.2.1','8 novembre 2026',["La tastiera non si chiude più mentre scrivi","Riserva di emergenza: puoi scrivere tu la cifra","Gli aggiornamenti arrivano subito, senza aspettare la cache","Nuova schermata iniziale: tre passi numerati e un solo pulsante per importare"]],
+const APP_VERSION='1.2.2';
+const CHANGELOG=[['1.2.2','8 novembre 2026',["Busta paga: scegli il conto e la data dell'accredito, lo stipendio e i rimborsi entrano come movimenti","Se non hai ancora un conto, Lydia te lo fa creare prima di leggere la busta paga","Mentre legge il PDF compare una finestra di attesa; se qualcosa va storto te lo dice","Un movimento con data precedente all'ultimo saldo verificato non altera il saldo"]],
+ ['1.2.1','8 novembre 2026',["La tastiera non si chiude più mentre scrivi","Riserva di emergenza: puoi scrivere tu la cifra","Gli aggiornamenti arrivano subito, senza aspettare la cache","Nuova schermata iniziale: tre passi numerati e un solo pulsante per importare"]],
  ['1.2.0','8 novembre 2026',["Nuova sezione Conti: saldo di ogni conto, entrate e uscite del mese, andamento degli ultimi sei mesi","Buste paga lette in automatico dal PDF, direttamente sul telefono; resta l'inserimento a mano","Calcolo della riserva di emergenza da stipendio, spese e tipo di contratto","Import dei backup .zip senza connessione, scegliendo il file da qualsiasi cartella","Promemoria del backup e schermata sulla privacy","Grafici disegnati dall'app: nessuna libreria o font esterno, tutto funziona offline","Impostazioni riorganizzate, con la scelta della valuta","Dettagli color oro come il logo"]],
  ['1.1.0','7 novembre 2026',["Più conti (conto corrente, contanti, carte, depositi) con saldi automatici","Giroconti tra i conti","Scorciatoie dall'icona: spesa, entrata, giroconto","Nuovo nome e nuova icona: Lydia"]],
  ['1.0.0','6 novembre 2026',["Prima versione: movimenti, stipendi, patrimonio, ETF, fondo pensione e consigli","Tema chiaro e scuro","Import da CSV e da backup di altre app, export e backup completo"]]];
@@ -1066,8 +1085,10 @@ function mergeSeed(sd){const key=m=>m.date+'|'+(+m.amount).toFixed(2)+'|'+m.type
 
 /* import da backup di un'altra app di spese (.zip/.json) */
 function decodeJSONBytes(u){if(u[0]===0xFF&&u[1]===0xFE)return new TextDecoder('utf-16le').decode(u.subarray(2));if(u[0]===0xFE&&u[1]===0xFF)return new TextDecoder('utf-16be').decode(u.subarray(2));return new TextDecoder('utf-8').decode(u).replace(/^﻿/,'')}
-function pickFiles(accept,fn,multiple){const i=document.createElement('input');i.type='file';i.style.display='none';if(accept)i.accept=accept;if(multiple)i.multiple=true;document.body.appendChild(i);
- i.onchange=()=>{const fl=[...i.files];i.remove();if(fl.length)fn(multiple?fl:fl[0])};i.click();setTimeout(()=>{if(!i.files||!i.files.length)i.remove()},120000)}
+function pickFiles(accept,fn,multiple){const old=document.getElementById('fpick2');if(old)old.remove();const i=document.createElement('input');i.type='file';i.id='fpick2';i.setAttribute('aria-hidden','true');i.tabIndex=-1;i.style.cssText='position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0';if(accept)i.accept=accept;if(multiple)i.multiple=true;document.body.appendChild(i);
+ let done=false;const go_=()=>{if(done)return;const fl=[...(i.files||[])];if(!fl.length)return;done=true;setTimeout(()=>i.remove(),0);Promise.resolve().then(()=>fn(multiple?fl:fl[0])).catch(e=>{busy(false);toast('Errore: '+(e&&e.message||e),6000)})};i.addEventListener('change',go_);i.addEventListener('input',go_);i.click()}
+/* finestra di attesa ben visibile mentre leggo i file */
+function busy(on,msg){let b=document.getElementById('busy');if(!on){if(b)b.remove();return}if(!b){b=document.createElement('div');b.id='busy';b.setAttribute('role','status');b.style.cssText='position:fixed;inset:0;z-index:80;display:grid;place-items:center;background:rgba(5,8,18,.45)';document.body.appendChild(b)}b.innerHTML=`<div class="glass card" style="display:flex;gap:12px;align-items:center;background:var(--bg);max-width:300px">${LOGO(34)}<b>${esc(msg||'Un momento…')}</b></div>`}
 const MAX_FILE=50*1024*1024;
 async function unzipJSON(buf){const u=new Uint8Array(buf),dv=new DataView(buf);let e=-1;
  for(let i=u.length-22;i>=Math.max(0,u.length-65558);i--)if(dv.getUint32(i,true)===0x06054b50){e=i;break}
