@@ -273,6 +273,12 @@ section.blk.glass,.glass.card,.glass.tile,.glass.hero,.glass.empty{overflow:hidd
 .fab svg{position:relative;stroke:var(--gold-ink)}
 :root[data-theme="dark"] .fab{border-color:rgba(255,255,255,.28);background:radial-gradient(120% 90% at 30% 15%,rgba(255,225,140,.40),rgba(212,175,55,.18) 55%,rgba(120,95,25,.30) 100%)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .fab{border-color:rgba(255,255,255,.28);background:radial-gradient(120% 90% at 30% 15%,rgba(255,225,140,.40),rgba(212,175,55,.18) 55%,rgba(120,95,25,.30) 100%)}}
+/* niente rettangolo azzurro al tocco: resta solo il contorno oro per chi usa la tastiera */
+html{-webkit-tap-highlight-color:transparent}
+*{-webkit-tap-highlight-color:transparent}
+button:focus:not(:focus-visible),a:focus:not(:focus-visible),[tabindex]:focus:not(:focus-visible){outline:none}
+button:focus-visible,a:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+nav.tabs button:focus-visible{outline-offset:-2px;border-radius:999px}
 </style>
 </head>
 <body>
