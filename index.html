@@ -321,7 +321,7 @@ nav.tabs{background:rgba(255,255,255,.42);-webkit-backdrop-filter:blur(24px) sat
 'use strict';
 const KEY='conti_stiven_v2';
 const TITLES={home:['Panoramica','Come stai andando'],conti:['Conti','Quanto c\'è in ogni conto'],movimenti:['Movimenti','Entrate, spese e investimenti'],stipendi:['Stipendi','Buste paga e netto in busta'],patrimonio:['Patrimonio','Liquidità, ETF, fondo pensione e proiezioni'],consigli:['Consigli','Cosa fare adesso']};
-const CATS={out:['Alimentari','Ristoranti e bar','Casa','Bollette','Auto','Trasporti','Shopping','Salute','Sport','Svago','Viaggi','Abbonamenti','Telefono','Regali','Prestiti','Carta di credito','Altro'],in:['Stipendio','Tredicesima','Extra stipendio','Rimborso','Altre entrate','Rendimento investimenti','Disinvestimento'],inv:['ETF','PAC fondi','Fondo pensione extra','Altro investimento'],tr:[]};
+const CATS={out:['Alimentari','Ristoranti e bar','Casa','Bollette','Auto','Trasporti','Shopping','Salute','Sport','Svago','Viaggi','Abbonamenti','Telefono','Regali','Prestiti','Carta di credito','Spese carta','Altro'],in:['Stipendio','Tredicesima','Extra stipendio','Rimborso','Altre entrate','Rendimento investimenti','Disinvestimento'],inv:['ETF','PAC fondi','Fondo pensione extra','Altro investimento'],tr:[]};
 const EXTRA_CATS=['Tredicesima','Extra stipendio','Bonus','Premio','Quattordicesima'];
 const APPNAME='Lydia';
 const hello=()=>'Ciao'+(S.settings.name?' '+S.settings.name:'');
@@ -387,12 +387,12 @@ function parseDate(s){s=String(s??'').trim().replace(/^"|"$/g,'');let m,y,mo,d;
 const DEF_SET={theme:'auto',hideAmounts:false,reserve:0,salary:0,spese:0,job:'indet',single:true,dependents:false,reserveAsked:false,tourDone:false,since:null,backupSnooze:null,acc:[],minOrder:2500,feePct:.15,feeMin:8,feeMax:20,satMax:15,cometaAnnuo:2390,budgets:{},currency:'EUR',privacyOk:false,backupEvery:14,lastBackup:null,seenVersion:'',projContrib:6000,projYears:10,accounts:['Conto corrente','Contanti','Carta di credito'],name:'',cardCat:'Carta di credito',extMap:{},avKey:'',tdKey:'',provider:'none',refreshMin:5};
 function norm(d){d=d&&typeof d==='object'?d:{};const arr=x=>Array.isArray(x)?x:[];
  return{movs:arr(d.movs),payslips:arr(d.payslips),etfs:arr(d.etfs).map(e=>({...e,ops:arr(e.ops),hist:arr(e.hist)})),
-  cometa:{hist:[],...(d.cometa||{}),hist:arr(d.cometa&&d.cometa.hist)},cash:{hist:arr(d.cash&&d.cash.hist)},loans:arr(d.loans),accounts:arr(d.accounts),extSeen:arr(d.extSeen||d.ivySeen),rev:+d.rev||0,
+  cometa:{hist:[],...(d.cometa||{}),hist:arr(d.cometa&&d.cometa.hist)},cash:{hist:arr(d.cash&&d.cash.hist)},loans:arr(d.loans),accounts:arr(d.accounts),cards:arr(d.cards),pendingStmts:arr(d.pendingStmts),extSeen:arr(d.extSeen||d.ivySeen),rev:+d.rev||0,
   settings:{...DEF_SET,...(d.settings||{})}}}
 let storageOk=true;
 function load(){try{const r=localStorage.getItem(KEY);if(r)return norm(JSON.parse(r))}catch(e){storageOk=false}return null}
 let S=load();const firstRun=!S;if(!S)S=norm({});
-function save(){try{localStorage.setItem(KEY,JSON.stringify(S));storageOk=true}catch(e){storageOk=false;toast('Non riesco a salvare. Fai subito un backup',5000)}}
+function save(){window.__ver=(window.__ver||0)+1;try{localStorage.setItem(KEY,JSON.stringify(S));storageOk=true}catch(e){storageOk=false;toast('Non riesco a salvare. Fai subito un backup',5000)}}
 
 /* ---------- tema ---------- */
 function applyTheme(){const t=S.settings.theme;const r=document.documentElement;if(t==='light'||t==='dark')r.setAttribute('data-theme',t);else r.removeAttribute('data-theme');
@@ -405,15 +405,23 @@ function kind(m){if(m.type==='tr')return 'tr';if(m.type==='out')return 'spesa';i
 function agg(list){const o={stip:0,extra:0,entr:0,rimb:0,spese:0,straord:0,inv:0,disinv:0,rend:0,tr:0};
  for(const m of list){const k=kind(m),a=+m.amount||0;if(k==='spesa'){o.spese+=a;if(m.straord)o.straord+=a}else o[k]+=a}
  o.entrate=o.stip+o.extra+o.entr;o.netta=o.spese-o.rimb;o.nettaOrd=o.netta-o.straord;o.risp=o.entrate-o.netta;o.tasso=o.entrate?o.risp/o.entrate:null;return o}
-const byMonth=k=>S.movs.filter(m=>m.date.startsWith(k));
-const inRange=(a,b)=>S.movs.filter(m=>m.date>=a&&m.date<=b);
+/* movimenti per le analisi: un addebito della carta scomposto vale come le sue singole spese, ognuna con la sua data */
+let amCache=null,amKey='';
+function AM(){const k=S.movs.length+'|'+(window.__ver||0);if(amCache&&amKey===k)return amCache;const out=[];
+ for(const m of S.movs){if(!m.split||!Array.isArray(m.split.items)){out.push(m);continue}
+  m.split.items.forEach((it,i)=>out.push({id:m.id+'~'+i,parent:m.id,date:it.date,type:it.cr?'in':'out',cat:it.cr?'Rimborso':(it.cat||'Altro'),desc:it.desc,amount:it.amount,acct:m.acct}));
+  const d=Math.round((m.amount-(sum(m.split.items.filter(x=>!x.cr),x=>x.amount)-sum(m.split.items.filter(x=>x.cr),x=>x.amount)))*100)/100;
+  if(Math.abs(d)>=0.01)out.push({id:m.id+'~d',parent:m.id,date:m.date,type:d>0?'out':'in',cat:d>0?'Da verificare':'Rimborso',desc:'Differenza con l\'estratto conto',amount:Math.abs(d),acct:m.acct})}
+ amCache=out;amKey=k;return out}
+const byMonth=k=>AM().filter(m=>m.date.startsWith(k));
+const inRange=(a,b)=>AM().filter(m=>m.date>=a&&m.date<=b);
 function lastMovK(){let mx='';for(const m of S.movs)if(m.date>mx)mx=m.date;return mx?mx.slice(0,7):curK()}
 function completeMonths(){let mx='';for(const m of S.movs)if(m.date>mx)mx=m.date;if(!mx)return shiftK(curK(),-1);
  const lk=mx.slice(0,7);let lastFull=+mx.slice(8)>=27?lk:shiftK(lk,-1);const cap=shiftK(curK(),-1);return lastFull>cap?cap:lastFull}
 function catSpend(list){const o={};for(const m of list)if(m.type==='out')o[m.cat]=(o[m.cat]||0)+m.amount;return Object.entries(o).sort((a,b)=>b[1]-a[1])}
 const colorOf=i=>css(COLORS[i%COLORS.length]);
 const catColorCache={};
-function catColor(c){if(!(c in catColorCache)){const all=catSpend(S.movs).map(x=>x[0]);let i=all.indexOf(c);if(i<0){i=0;for(const ch of c)i=(i*31+ch.charCodeAt(0))>>>0}catColorCache[c]=i%COLORS.length}return colorOf(catColorCache[c])}
+function catColor(c){if(!(c in catColorCache)){const all=catSpend(AM()).map(x=>x[0]);let i=all.indexOf(c);if(i<0){i=0;for(const ch of c)i=(i*31+ch.charCodeAt(0))>>>0}catColorCache[c]=i%COLORS.length}return colorOf(catColorCache[c])}
 
 /* ETF */
 function etfStats(e,upTo){const ops=e.ops.filter(o=>!upTo||o.date<=upTo).slice().sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);let qty=0,cost=0;
@@ -516,7 +524,7 @@ function render(){
  chartBase();
  ({home:renderHome,movimenti:renderMov,conti:renderConti,stipendi:renderSal,patrimonio:renderPat,consigli:renderTips})[tab]();
  $('#tipsbtn').setAttribute('aria-current',tab==='consigli'?'page':'false');
- syncWidget();
+ syncWidget();try{if(S.pendingStmts.length)checkPending()}catch(e){}
  const n=insights().filter(x=>x.lv==='act'||x.lv==='warn'||x.lv==='bad').length;const d=$('#tipdot');d.hidden=!n;d.textContent=n;
 }
 
@@ -588,7 +596,7 @@ function renderMov(){const main=$('#main');
  $('#q').oninput=e=>{mf.q=e.target.value;drawMovList()};
  $$('[data-t]').forEach(b=>b.onclick=()=>{mf.t=b.dataset.t;$$('[data-t]').forEach(x=>x.setAttribute('aria-pressed',x===b));drawMovList()});
  $('#mm').onchange=e=>{mf.m=e.target.value;drawMovList()};$('#mc').onchange=e=>{mf.c=e.target.value;drawMovList()};
- $('#movlist').onclick=e=>{const r=e.target.closest('[data-id]');if(r)movForm(S.movs.find(m=>m.id===r.dataset.id))};
+ $('#movlist').onclick=e=>{const r=e.target.closest('[data-id]');if(!r)return;const m=S.movs.find(x=>x.id===r.dataset.id);if(m&&m.split)splitSheet(m);else movForm(m)};
  drawMovList()}
 function drawMovList(){const q=mf.q.trim().toLowerCase();
  let l=S.movs.filter(m=>(!mf.a||mf.a==='all'||m.acct===mf.a||m.to===mf.a)&&(mf.t==='all'||m.type===mf.t)&&(mf.m==='all'||m.date.startsWith(mf.m))&&(mf.c==='all'||m.cat===mf.c)&&(!q||(m.desc||'').toLowerCase().includes(q)||m.cat.toLowerCase().includes(q)));
@@ -600,7 +608,7 @@ function drawMovList(){const q=mf.q.trim().toLowerCase();
  for(const k of Object.keys(g)){const a=agg(g[k]);h+=`<div class="grouphead"><b>${esc(monthLabel(k))}</b><span class="note num"><span class="pos">+${eur0(a.entrate+a.rimb)}</span> &nbsp; <span class="neg">−${eur0(a.spese)}</span></span></div><div class="glass list">${g[k].map(rowHTML).join('')}</div>`}
  $('#movlist').innerHTML=h;if($('#fixbal'))$('#fixbal').onclick=()=>accountsSheet()}
 function rowHTML(m){if(m.type==='tr')return `<button class="row" data-id="${m.id}"><span class="ico" style="background:${css('--c8')}">⇄</span><div class="main"><div class="t">${esc(m.acct)} → ${esc(m.to||'?')}</div><div class="s">Giroconto${m.desc?' · '+esc(m.desc):''} · ${fmtDate(m.date)}</div></div><div class="amt num">${eur(m.amount)}</div></button>`;const sign=m.type==='in'?'+':'−';const cls=m.type==='in'?'pos':'';const col=m.type==='in'?css('--pos'):m.type==='inv'?css('--c5'):catColor(m.cat);
- return `<button class="row" data-id="${m.id}"><span class="ico" style="background:${col}">${esc((m.cat||'?').slice(0,2).toUpperCase())}</span><div class="main"><div class="t">${esc(m.desc||m.cat)}</div><div class="s">${esc(m.cat)}${m.type==='inv'?' · investimento':''}${m.straord?' · straordinaria':''}${S.accounts.length>1&&m.acct?' · '+esc(m.acct):''} · ${fmtDate(m.date)}</div></div><div class="amt num ${cls}">${sign}${eur(m.amount)}</div></button>`}
+ return `<button class="row" data-id="${m.id}"><span class="ico" style="background:${col}">${esc((m.cat||'?').slice(0,2).toUpperCase())}</span><div class="main"><div class="t">${esc(m.desc||m.cat)}</div><div class="s">${m.split?`<b style="color:var(--gold-ink)">${m.split.items.length} ${m.split.items.length===1?'spesa':'spese'} della carta</b> · `:''}${esc(m.cat)}${m.type==='inv'?' · investimento':''}${m.straord?' · straordinaria':''}${S.accounts.length>1&&m.acct?' · '+esc(m.acct):''} · ${fmtDate(m.date)}</div></div><div class="amt num ${cls}">${sign}${eur(m.amount)}</div></button>`}
 function allCats(t){const since=iso(new Date(Date.now()-180*864e5));const cnt={};for(const m of S.movs)if(m.type===t&&m.date>=since)cnt[m.cat]=(cnt[m.cat]||0)+1;
  return[...new Set([...CATS[t]||[],...S.movs.filter(m=>m.type===t).map(m=>m.cat)])].sort((x,y)=>(cnt[y]||0)-(cnt[x]||0))}
 function accounts(){const own=S.accounts.map(a=>a.name);return[...new Set([...(own.length?own:(S.settings.accounts||[])),...S.movs.flatMap(m=>[m.acct,m.to]).filter(Boolean)])]}
@@ -750,11 +758,98 @@ function parsePayslip(lines,fname){const out={},found={};
  if(hasO)out.ore=Math.round(ore*100)/100;if(tr)out.trasferte=Math.round(tr*100)/100;if(rb)out.rimborsi=Math.round(rb*100)/100;
  const az=lines[0]&&lines.slice(0,4).flatMap(l=>l.cells).find(c=>/S\.?P\.?A\.?|S\.?R\.?L\.?|S\.?N\.?C\.?|S\.?A\.?S\.?/.test(c.s)&&c.s.length<60);if(az)out.azienda=az.s.replace(/\s+/g,' ');
  return{rec:out,found}}
-async function importPayslips(files){if(!files.length)return;if(!S.accounts.length){accountsSheet(()=>importPayslips(files),'Prima crea il conto dove ti arriva lo stipendio: poi leggo la busta paga.');return}
- busy(true,files.length>1?`Leggo ${files.length} buste paga…`:'Leggo la busta paga…');const res=[];const withTO=(pr,ms)=>Promise.race([pr,new Promise((_,rej)=>setTimeout(()=>rej(new Error('Il PDF è troppo complesso da leggere')),ms))]);
+/* ---------- estratti conto carte (American Express) ---------- */
+const lineText=L=>L.cells.map(c=>c.s).join(' ');
+const dmy=(d,m,y)=>`${y.length===2?'20'+y:y}-${pad(+m)}-${pad(+d)}`;
+function isCardStatement(lines){const t=lines.slice(0,25).map(lineText).join(' ');return /American Express/i.test(t)&&/Estratto Conto/i.test(t)}
+const CURR_LINE=/^(Yen|Dollari|Riyal|Sterline|Franchi|Corone|Yuan|Won|Baht|Dirham|Rupie|Pesos|Real|Zloty|Fiorini|Lire|Euro\b)/i;
+function parseCardStatement(lines){const st={issuer:'American Express',name:'',last:'',close:'',due:null,dueDate:'',items:[],prev:null,credits:null,charges:null,total:null};
+ const all=lines.map(lineText);
+ st.name=(lines[0]&&lines[0].cells[0]&&lines[0].cells[0].s)||'Carta';
+ for(let i=0;i<lines.length;i++){const t=all[i];
+  if(!st.last){const k=lines[i].cells.findIndex(c=>/x{3,}/i.test(c.s));if(k>=0&&lines[i].cells[k+1]&&/^\d{4,6}$/.test(lines[i].cells[k+1].s)){st.last=lines[i].cells[k+1].s;const r=lines[i].cells.slice(k+2).map(c=>c.s).join('').match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})/);if(r)st.close=dmy(r[1],r[2],r[3])}}
+  let r;
+  if(!st.dueDate&&(r=t.replace(/\s*\.\s*/g,'.').match(/addebitato salvo buon fine il (\d{1,2})\.(\d{1,2})\.(\d{4})/i)))st.dueDate=dmy(r[1],r[2],r[3]);
+  if(st.due==null&&(r=t.match(/importo dovuto pari a Euro\s+([\d.]+,\d{2})/i)))st.due=parseNum(r[1]);
+  if(st.prev==null&&/Saldo Precedente/i.test(t)&&lines[i+2]){const nums=lines[i+2].cells.filter(c=>/^[\d.]+,\d{2}$/.test(c.s)).map(c=>parseNum(c.s));if(nums.length>=4){[st.prev,st.credits,st.charges,st.total]=nums}}}
+ // righe delle operazioni
+ const rowRe=/^(\d{1,2}) \. (\d{1,2}) \. (\d{2}) (\d{1,2}) \. (\d{1,2}) \. (\d{2}) /;
+ for(let i=0;i<lines.length;i++){const L=lines[i],t=all[i];const m=t.match(rowRe);if(!m)continue;
+  const desc=L.cells.filter(c=>c.x>=110&&c.x<340).map(c=>c.s).join(' ').replace(/\s+/g,' ').trim();
+  const amt=[...L.cells].reverse().find(c=>c.x>=470&&/^[\d.]+,\d{2}$/.test(c.s));if(!amt||!desc)continue;
+  let cr=L.cells.some(c=>c.s==='CR'&&c.x>=500),hint='';
+  for(let j=i+1;j<Math.min(lines.length,i+5);j++){const N=lines[j];if(N.p!==L.p||rowRe.test(all[j])||/^Totale/i.test(all[j]))break;
+   if(N.cells.some(c=>c.s==='CR'&&c.x>=500))cr=true;
+   const h=N.cells.filter(c=>c.x>=110&&c.x<200&&!/^Tasso di Cambio/i.test(c.s)&&!CURR_LINE.test(c.s));if(!hint&&h.length===1&&N.cells.length===1&&/^[A-Za-zÀ-ÿ' -]{3,40}$/.test(h[0].s))hint=h[0].s}
+  const it={date:dmy(m[1],m[2],m[3]),desc,amount:parseNum(amt.s),cr,hint};
+  if(/ADDEBITO IN C\/C|PAGAMENTO RICEVUTO|GRAZIE PER IL PAGAMENTO/i.test(desc)&&cr)continue; // pagamento del mese prima
+  st.items.push(it)}
+ st.sum=Math.round((sum(st.items.filter(x=>!x.cr),x=>x.amount)-sum(st.items.filter(x=>x.cr),x=>x.amount))*100)/100;
+ return st}
+
+/* categorie: prima quello che hai già scelto tu, poi l'indicazione dell'estratto, poi le parole del negozio */
+const AMEX_HINT=[[/ristorant|fast food|pasticceri|bar\b|caff|pizzer|gelater|catering|tavola calda|pub\b/i,'Cibo e bevande'],[/supermercat|alimentar|discount|ipermercat/i,'Alimentari'],[/stazion. di servizio|carburant|benzin/i,'Auto'],[/grandi magazzini|abbigliament|calzatur|elettronic|libreri|sport/i,'Shopping'],[/farmaci|medic|ottic|ospedal/i,'Salute'],[/hotel|albergh|alloggi|viagg|compagni. aere|trasporto aereo|ferrovi/i,'Viaggi'],[/taxi|parchegg|autostrad|pedagg|trasport/i,'Trasporti']];
+const CARD_RULES=[[/QUOTA ASSOCIATIVA|QUOTA ANNUALE|IMPOSTA DI BOLLO|COMMISSION|INTERESSI/i,'Spese carta'],[/HOTEL|BOOKING\.COM(?!.*TAXI)|AIRBNB|TRIP\.COM|KLOOK|EXPEDIA|RYANAIR|EASYJET|WIZZ|LUFTHANSA|ITA AIRWAYS|EMIRATES|QATAR AIR|\bJR[A-Z]* |SMART EX|SHINKANSEN|TRENITALIA|ITALOTRENO|FLIXBUS|ONLINETICKETSTORE/i,'Viaggi'],[/UBER|TAXI|FREE NOW|ITTAXI|PARKING|PARCHEGG|TELEPASS|AUTOSTRADE/i,'Trasporti'],[/PRIME VIDEO|NETFLIX|SPOTIFY|DISNEY|APPLE\.COM\/BILL|GOOGLE \*|YOUTUBE|DAZN|AUDIBLE|ICLOUD/i,'Abbonamenti'],[/CONAD|COOP|ESSELUNGA|LIDL|EUROSPIN|DESPAR|SPAR\b|PAM\b|CARREFOUR|ALDI|IPER|TODIS|PENNY/i,'Alimentari'],[/RISTORANTE|TRATTORIA|OSTERIA|PIZZERIA|SUSHI|RAMEN|BAR\b|CAFF|MCDONALD|BURGER|KFC|DELIVEROO|JUST ?EAT|GLOVO|PASTICCERIA|GELATERIA|CATERING|STARBUCKS/i,'Cibo e bevande'],[/\bENI\b|Q8|ESSO|TAMOIL|\bIP\b|SHELL|API\b|BENZIN/i,'Auto'],[/FARMACIA|PARAFARMACIA|OTTICA/i,'Salute'],[/AMZN|AMAZON|UNIQLO|BIC CAMERA|OVS|ZARA|H&M|IKEA|DECATHLON|MEDIAWORLD|UNIEURO|ZALANDO|MAGAZINES/i,'Shopping']];
+const merchKey=d=>nrm(d).replace(/\*.*$/,'').replace(/[0-9]+/g,' ').replace(/[^a-z& ]/g,' ').replace(/\s+/g,' ').trim().split(' ').slice(0,3).join(' ');
+function guessCardCat(it){const learned=(S.settings.merchantCat||{})[merchKey(it.desc)];if(learned)return[learned,'tua'];
+ for(const[re,c]of CARD_RULES)if(re.test(it.desc)&&/Spese carta/.test(c))return[c,'regola'];
+ if(it.hint)for(const[re,c]of AMEX_HINT)if(re.test(it.hint))return[c,'estratto'];
+ for(const[re,c]of CARD_RULES)if(re.test(it.desc))return[c,'regola'];return['','']}
+function cardOf(st){let c=S.cards.find(x=>x.last===st.last);if(!c){c={id:uid(),name:st.name.replace(/ American Express$/i,'').replace(/^Carta /i,'')||'Carta',issuer:st.issuer,last:st.last,acct:'',type:'saldo'};S.cards.push(c)}return c}
+function debitCandidates(st,card){const due=st.due,from=st.close,to=iso(new Date(pd(st.dueDate||st.close).getTime()+12*864e5));
+ return S.movs.filter(m=>m.type==='out'&&!m.split&&Math.abs(m.amount-due)<0.005&&m.date>=from&&m.date<=to&&(!card.acct||m.acct===card.acct)).sort((a,b)=>Math.abs(pd(a.date)-pd(st.dueDate||st.close))-Math.abs(pd(b.date)-pd(st.dueDate||st.close)))}
+function attachSplit(m,st,card){m.split={card:card.id,close:st.close,due:st.due,items:st.items.map(it=>({date:it.date,desc:it.desc,amount:it.amount,cr:!!it.cr,cat:it.cr?'Rimborso':it.cat||'Altro'}))};if(!card.acct)card.acct=m.acct}
+function checkPending(){if(!S.pendingStmts.length)return 0;let n=0;S.pendingStmts=S.pendingStmts.filter(p=>{const card=S.cards.find(c=>c.id===p.card);if(!card)return false;const c=debitCandidates(p.st,card);if(c.length===1){attachSplit(c[0],p.st,card);n++;return false}return true});if(n){save();toast(n===1?'Estratto conto collegato all\'addebito appena arrivato':`${n} estratti conto collegati agli addebiti`,4000)}return n}
+let stmtQueue=[];
+function nextStatement(){const st=stmtQueue.shift();if(st)stmtSheet(st)}
+function stmtSheet(st){const card=cardOf(st);st.items.forEach(it=>{if(it.cat===undefined){const[c,src]=it.cr?['Rimborso','']:guessCardCat(it);it.cat=c;it.src=src}});
+ const dup=S.movs.find(m=>m.split&&m.split.card===card.id&&m.split.close===st.close)||S.pendingStmts.find(p=>p.card===card.id&&p.st.close===st.close);
+ const cand=debitCandidates(st,card);let pick=cand[0]?cand[0].id:'';
+ const outCats=[...new Set([...CATS.out,...allCats('out')])].filter(c=>c!==S.settings.cardCat).sort((a,b)=>a.localeCompare(b,'it'));
+ const draw=()=>{const charges=sum(st.items.filter(x=>!x.cr),x=>x.amount),cr=sum(st.items.filter(x=>x.cr),x=>x.amount),net=Math.round((charges-cr)*100)/100,ok=Math.abs(net-st.due)<0.005;
+  const groups={};st.items.forEach((it,i)=>{const g=it.cr?'Rimborsi e crediti':(it.cat||'Da scegliere');(groups[g]=groups[g]||[]).push(i)});
+  const order=Object.keys(groups).sort((a,b)=>(a==='Da scegliere'?-1:b==='Da scegliere'?1:0)||sum(groups[b],i=>st.items[i].amount)-sum(groups[a],i=>st.items[i].amount));
+  openSheet(`<h3>${esc(card.name)} ·· ${esc(st.last.slice(-4))}</h3><p class="note" style="margin-top:-6px">Estratto chiuso il ${fmtDate(st.close)}. Importo da addebitare <b>${eur(st.due)}</b>${st.dueDate?` il ${fmtDate(st.dueDate)}`:''}.</p>
+  ${dup?'<p class="note neg" style="margin-top:6px"><b>Questo estratto è già stato caricato.</b> Se salvi, sostituisce quello di prima.</p>':''}
+  <div class="resbox" style="margin-top:10px">${cand.length?`<div class="eyebrow">Addebito sul conto</div>${cand.length===1?`<div class="kv" style="border:0"><span>${fmtDate(cand[0].date)} · ${esc(cand[0].acct)}</span><b class="num">${eur(cand[0].amount)}</b></div>`:`<label class="f" style="margin:6px 0 0">Ho trovato più addebiti uguali: quale?<select id="stpick">${cand.map(m=>`<option value="${m.id}">${fmtDate(m.date)} · ${esc(m.acct)} · ${esc(m.desc||m.cat)}</option>`).join('')}</select></label>`}`
+   :`<div class="eyebrow">Addebito non ancora trovato</div><p class="note" style="margin:4px 0 0">Nessun addebito di ${eur(st.due)} sul conto dopo il ${fmtDate(st.close)}. Se salvi, lo tengo in attesa e lo collego appena arriva.</p>`}
+   <div class="kv" style="margin-top:8px"><span>Spese ${eur(charges)}${cr?` − crediti ${eur(cr)}`:''}</span><b class="num ${ok?'pos':'neg'}">${eur(net)} ${ok?'✓':''}</b></div>
+   ${ok?'':`<p class="note" style="margin:4px 0 0">${card.type==='revolving'?'Carta revolving: l\'addebito può essere solo una rata. ':''}Non coincide con l'importo da addebitare: la differenza di ${eur(Math.abs(st.due-net))} finirà in "Da verificare".</p>`}</div>
+  <div id="stl">${order.map(g=>`<div class="eyebrow" style="margin:16px 0 4px">${esc(g)} · ${eur(sum(groups[g],i=>st.items[i].amount))}</div>${groups[g].map(i=>{const it=st.items[i];return `<div class="pdfrow" style="display:block;${!it.cr&&!it.cat?'background:var(--gold-soft);padding:8px 10px;':''}"><div style="display:flex;justify-content:space-between;gap:10px"><b style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(it.desc)}</b><b class="num ${it.cr?'pos':''}" style="white-space:nowrap">${it.cr?'+':'−'}${eur(it.amount)}</b></div><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:4px"><span class="note">${fmtDate(it.date)}${it.hint?' · '+esc(it.hint):''}</span>${it.cr?'<span class="note">Rimborso</span>':`<select data-it="${i}" style="max-width:55%;border-radius:999px;padding:5px 10px;border:1px solid var(--glass-line);background:var(--glass);color:var(--ink);font-size:.85rem">${['',...outCats].map(c=>`<option value="${esc(c)}" ${c===it.cat?'selected':''}>${c?esc(c):'Scegli la categoria'}</option>`).join('')}</select>`}</div></div>`}).join('')}`).join('')}</div>
+  <div class="actions"><button class="btn ghost" id="stx">${stmtQueue.length?'Salta':'Annulla'}</button><button class="btn gold" id="sts">${cand.length?'Scomponi l\'addebito':'Salva in attesa'}</button></div>`);
+  $$('#stl [data-it]').forEach(sel=>sel.onchange=()=>{const it=st.items[+sel.dataset.it];it.cat=sel.value;it.src='tua';it.touched=true;const k=merchKey(it.desc);st.items.forEach(o=>{if(!o.cr&&!o.touched&&merchKey(o.desc)===k)o.cat=sel.value});draw()});
+  if($('#stpick')){$('#stpick').value=pick;$('#stpick').onchange=e=>pick=e.target.value}
+  $('#stx').onclick=()=>{closeSheet();setTimeout(nextStatement,250)};
+  $('#sts').onclick=async()=>{if(st.items.some(it=>!it.cr&&!it.cat)){if(!(await ask('Ci sono spese senza categoria','Le metto in "Altro"? Potrai cambiarle dopo.','Va bene'))){draw();return}st.items.forEach(it=>{if(!it.cr&&!it.cat)it.cat='Altro'})}
+   const mc={...(S.settings.merchantCat||{})};st.items.forEach(it=>{if(it.touched&&it.cat)mc[merchKey(it.desc)]=it.cat});S.settings.merchantCat=mc;
+   if(dup){for(const m of S.movs)if(m.split&&m.split.card===card.id&&m.split.close===st.close)delete m.split;S.pendingStmts=S.pendingStmts.filter(p=>!(p.card===card.id&&p.st.close===st.close))}
+   const clean={...st,items:st.items.map(({date,desc,amount,cr,cat,hint})=>({date,desc,amount,cr,cat,hint}))};
+   if(cand.length){const m=S.movs.find(x=>x.id===(pick||cand[0].id));attachSplit(m,clean,card);save();closeSheet();toast(`Addebito di ${eur(m.amount)} diviso in ${clean.items.length} ${clean.items.length===1?'spesa':'spese'}`,4000)}
+   else{S.pendingStmts.push({card:card.id,st:clean});save();closeSheet();toast('Estratto salvato: lo collego quando arriva l\'addebito',4500)}
+   render();setTimeout(nextStatement,300)}};
+ draw()}
+function splitSheet(m){const card=S.cards.find(c=>c.id===m.split.card)||{name:'Carta',last:''};const it=m.split.items;const groups={};it.forEach(x=>{const g=x.cr?'Rimborsi e crediti':x.cat;groups[g]=(groups[g]||0)+(x.cr?-x.amount:x.amount)});
+ openSheet(`<h3>${esc(card.name)}${card.last?' ·· '+esc(card.last.slice(-4)):''}</h3><p class="note" style="margin-top:-6px">Addebito del ${fmtDate(m.date)} su ${esc(m.acct)}: <b>${eur(m.amount)}</b>. Estratto chiuso il ${fmtDate(m.split.close)}.</p>
+ <div class="resbox" style="margin-top:10px">${Object.entries(groups).sort((a,b)=>b[1]-a[1]).map(([g,v])=>`<div class="kv" style="border:0;padding:3px 0"><span>${esc(g)}</span><b class="num">${eur(v)}</b></div>`).join('')}</div>
+ <div style="margin-top:8px">${it.slice().sort((a,b)=>a.date<b.date?-1:1).map(x=>`<div class="kv"><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${fmtDate(x.date)} · ${esc(x.desc)}<br><span class="note">${esc(x.cr?'Rimborso':x.cat)}</span></span><b class="num ${x.cr?'pos':''}">${x.cr?'+':'−'}${eur(x.amount)}</b></div>`).join('')}</div>
+ <div class="actions"><button class="btn danger" id="spdel">Annulla scomposizione</button><button class="btn ghost" id="sped">Modifica addebito</button><button class="btn gold" id="spok">Ok</button></div>`);
+ $('#spok').onclick=closeSheet;$('#sped').onclick=()=>{closeSheet();setTimeout(()=>movForm(m),200)};
+ $('#spdel').onclick=async()=>{if(await ask('Annullare la scomposizione?','L\'addebito torna una voce unica. Puoi ricaricare l\'estratto quando vuoi.','Annulla scomposizione',true)){delete m.split;save();render();toast('Scomposizione annullata')}}}
+function cardsSheet(){const draw=()=>{openSheet(`<h3>Carte di credito</h3><p class="note" style="margin-top:-6px">Si aggiungono da sole quando carichi un estratto conto. Qui scegli da che conto vengono addebitate e se le paghi tutte a fine mese.</p>
+ <div id="cdl">${S.cards.map(c=>`<div class="glass" style="padding:12px;margin-top:10px" data-c="${c.id}"><div class="f2"><label class="f">Nome<input class="cn" value="${esc(c.name)}"></label><label class="f">Ultime cifre<input value="${esc(c.last)}" disabled></label></div>
+  <div class="f2"><label class="f">Addebitata su<select class="ca"><option value="">Qualsiasi conto</option>${S.accounts.map(a=>`<option ${a.name===c.acct?'selected':''}>${esc(a.name)}</option>`).join('')}</select></label><label class="f">Pagamento<select class="ct2"><option value="saldo" ${c.type!=='revolving'?'selected':''}>Saldo a fine mese</option><option value="revolving" ${c.type==='revolving'?'selected':''}>Revolving (a rate)</option></select></label></div>
+  <button class="btn danger sm" data-del="${c.id}">Elimina</button></div>`).join('')||'<p class="note" style="margin-top:10px">Nessuna carta. Carica un estratto conto e la aggiungo io.</p>'}</div>
+ ${S.pendingStmts.length?`<p class="note" style="margin-top:12px">${S.pendingStmts.length} estratti in attesa del loro addebito.</p>`:''}
+ <div class="actions"><button class="btn ghost" id="cdimp">Carica estratto conto</button><button class="btn gold" id="cds">Salva</button></div>`);
+  $('#cdimp').onclick=()=>{closeSheet();pickFiles('.pdf,application/pdf',importPayslips,true)};
+  $('#cdl').onclick=async e=>{const b=e.target.closest('[data-del]');if(!b)return;const c=S.cards.find(x=>x.id===b.dataset.del);const n=S.movs.filter(m=>m.split&&m.split.card===c.id).length;
+   if(await ask(`Eliminare ${c.name}?`,n?`${n} addebiti scomposti torneranno voci uniche.`:'','Elimina',true)){S.movs.forEach(m=>{if(m.split&&m.split.card===c.id)delete m.split});S.cards=S.cards.filter(x=>x.id!==c.id);S.pendingStmts=S.pendingStmts.filter(p=>p.card!==c.id);save();draw()}};
+  $('#cds').onclick=()=>{$$('#cdl [data-c]').forEach(r=>{const c=S.cards.find(x=>x.id===r.dataset.c);c.name=r.querySelector('.cn').value.trim()||c.name;c.acct=r.querySelector('.ca').value;c.type=r.querySelector('.ct2').value});save();closeSheet();render();toast('Carte salvate')}};draw()}
+async function importPayslips(files){if(!files.length)return;if(!S.accounts.length){accountsSheet(()=>importPayslips(files),'Prima crea il conto principale: poi leggo il PDF.');return}
+ busy(true,files.length>1?`Leggo ${files.length} PDF…`:'Leggo il PDF…');const res=[],stmts=[];const withTO=(pr,ms)=>Promise.race([pr,new Promise((_,rej)=>setTimeout(()=>rej(new Error('Il PDF è troppo complesso da leggere')),ms))]);
  for(const f of files){try{if(f.size>20*1024*1024)throw new Error('File troppo grande');const L=await withTO(pdfLines(await f.arrayBuffer()),20000);if(!L.length)throw new Error('Nel PDF non c\'è testo: forse è una foto o una scansione');
-   const r=parsePayslip(L,f.name);if(!r.found.netto)throw new Error('Non trovo il netto in busta');res.push({f,...r})}catch(e){res.push({f,err:e.message||'PDF non leggibile'})}}
- busy(false);const ok=res.filter(r=>!r.err);
+   if(isCardStatement(L)){const st=parseCardStatement(L);if(!st.last||st.due==null)throw new Error('Non riesco a leggere questo estratto conto');stmts.push(st);continue}const r=parsePayslip(L,f.name);if(!r.found.netto)throw new Error('Non trovo il netto in busta');res.push({f,...r})}catch(e){res.push({f,err:e.message||'PDF non leggibile'})}}
+ busy(false);if(stmts.length){stmts.sort((a,b)=>a.close<b.close?-1:1);stmtQueue=stmts;const others=res.filter(r=>r.err);if(others.length)toast(others[0].err,5000);if(!res.filter(r=>!r.err).length){nextStatement();return}setTimeout(()=>{if(!$('#ov').classList.contains('open'))nextStatement()},2500)}const ok=res.filter(r=>!r.err);if(!res.length)return;
  if(files.length===1){if(ok.length)payslipForm(null,ok[0]);else toast(res[0].err+'. Puoi inserirla a mano.',6000);return}
  openSheet(`<h3>Buste paga dai PDF</h3><p class="note" style="margin-top:-6px">Controlla i numeri. Potrai sempre correggerli toccando la busta paga.</p>
  <div id="pdfl" style="margin-top:10px">${res.map((r,i)=>r.err?`<div class="pdfrow"><span class="neg" style="font-weight:800">!</span><div><b>${esc(r.f.name)}</b><div class="note">${esc(r.err)}</div></div></div>`:
@@ -1015,6 +1110,8 @@ function cmdList(){const H=()=>S.settings.hideAmounts;return[
  ['Nuovo investimento','investimento etf pac comprare quote',()=>movForm(null,{type:'inv'})],
  ['Carica busta paga (PDF)','busta paga stipendio pdf cedolino',()=>pickFiles('.pdf,application/pdf',importPayslips,true)],
  ['Busta paga a mano','busta paga stipendio manuale',()=>payslipForm()],
+ ['Carica estratto conto della carta','estratto conto carta amex american express credito pdf',()=>pickFiles('.pdf,application/pdf',importPayslips,true)],
+ ['Carte di credito','carte carta credito amex',()=>cardsSheet()],
  ['Fai un backup','backup salva drive esporta copia',()=>doBackup()],
  ['Importa un file','importa zip csv json backup ripristina',()=>pickFiles('',importAny,true)],
  ['I tuoi conti','conti conto corrente carta contanti saldo',()=>go('conti')],
@@ -1117,8 +1214,9 @@ function fixBalSheet(a){const cur=Math.round(accBal(a)*100)/100;openSheet(`<h3>C
  $('#fxx').onclick=closeSheet;$('#fxs').onclick=()=>{const v=parseNum($('#fxv').value);if(isNaN(v)){toast('Scrivi un importo');return}setAccBal(a,v);save();closeSheet();render();toast(`Saldo di ${a.name} aggiornato`)}}
 
 /* ---------- privacy, backup, novità ---------- */
-const APP_VERSION='1.5.0';
-const CHANGELOG=[['1.5.0','8 novembre 2026',["Testi più semplici in tutta l'app","Barra in alto sempre leggibile mentre scorri","Pulsanti e selettori più sobri, grafico della Home più pulito","Widget Movimenti su una riga; widget Investimenti più basso","App Android: barre di sistema dello stesso colore dell'app","Barra in basso sospesa, con la sezione attiva evidenziata","Pulsante + rotondo, in vetro dorato lucido","Angoli arrotondati come su Android","Grafico della Home: entrate in verde e spese in rosso, con barre arrotondate","Barre in alto e in basso più trasparenti, campi selezionati in oro","Cerca nella Home: scrivi cosa vuoi fare, per esempio \"backup\" o \"12 caffè\""]],
+const APP_VERSION='1.6.0';
+const CHANGELOG=[['1.6.0','8 novembre 2026',["Estratti conto delle carte: carichi il PDF e l'addebito della carta si divide nelle singole spese, ognuna con la sua categoria","Più carte, ognuna con il suo conto e il tipo di pagamento (saldo a fine mese o revolving)","Se l'addebito non è ancora arrivato, l'estratto resta in attesa e si collega da solo","Le categorie che correggi vengono ricordate per i mesi successivi"]],
+ ['1.5.0','8 novembre 2026',["Testi più semplici in tutta l'app","Barra in alto sempre leggibile mentre scorri","Pulsanti e selettori più sobri, grafico della Home più pulito","Widget Movimenti su una riga; widget Investimenti più basso","App Android: barre di sistema dello stesso colore dell'app","Barra in basso sospesa, con la sezione attiva evidenziata","Pulsante + rotondo, in vetro dorato lucido","Angoli arrotondati come su Android","Grafico della Home: entrate in verde e spese in rosso, con barre arrotondate","Barre in alto e in basso più trasparenti, campi selezionati in oro","Cerca nella Home: scrivi cosa vuoi fare, per esempio \"backup\" o \"12 caffè\""]],
  ['1.4.0','8 novembre 2026',["App Android: widget Movimenti, con entrate e uscite del mese e i pulsanti Spesa, Entrata e Giroconto","App Android: widget Investimenti, con valore, guadagno e prezzo di ETF e azioni","App Android: icona di Lydia, anche adattiva e a tema"]],
  ['1.3.0','8 novembre 2026',["Backup su Drive con un tocco, dal menu di condivisione","Backup protetto da password (cifratura AES-256 sul telefono)","Lydia chiede a Chrome di non cancellare mai i suoi dati da sola"]],
  ['1.2.4','8 novembre 2026',["Modalità privacy: l'occhio in alto nasconde o mostra tutti gli importi","Barra in basso: la sezione attiva è in oro, senza riquadro"]],
@@ -1365,7 +1463,7 @@ function settingsSheet(){const st=S.settings;const sec=(t,h)=>`<div style="margi
   <p class="note" style="margin:-4px 0 10px">Cambia solo il simbolo: gli importi già inseriti non vengono convertiti.</p>
   <div class="f">Tema<div class="seg" id="thseg2" style="margin-top:6px">${[['auto','Automatico'],['light','Chiaro'],['dark','Scuro']].map(([k,l])=>`<button data-th="${k}" aria-pressed="${st.theme===k}">${l}</button>`).join('')}</div></div>
   <label class="f" style="margin-top:10px">Categoria del saldo carta di credito<input id="stcard" value="${esc(st.cardCat||'')}" placeholder="Per esempio Carta di credito"></label>`)}
- ${sec('Conti e riserva',`<div class="actions" style="margin-top:6px;flex-direction:column"><button class="btn ghost" id="goacc2">Conti: ${S.accounts.length?esc(S.accounts.map(a=>a.name).join(', ')):'nessuno'}</button><button class="btn ghost" id="gores">Riserva di emergenza: ${st.reserve>0?eur0(st.reserve):'da calcolare'}</button><button class="btn ghost" id="goaccant">Accantonamenti, ordine minimo e commissioni</button></div>`)}
+ ${sec('Conti e riserva',`<div class="actions" style="margin-top:6px;flex-direction:column"><button class="btn ghost" id="goacc2">Conti: ${S.accounts.length?esc(S.accounts.map(a=>a.name).join(', ')):'nessuno'}</button><button class="btn ghost" id="gores">Riserva di emergenza: ${st.reserve>0?eur0(st.reserve):'da calcolare'}</button><button class="btn ghost" id="gocards">Carte di credito${S.cards.length?': '+esc(S.cards.map(c=>c.name).join(', ')):''}</button><button class="btn ghost" id="goaccant">Accantonamenti, ordine minimo e commissioni</button></div>`)}
  ${sec('Quotazioni',`<div class="actions" style="margin-top:6px"><button class="btn ghost" id="goq">Quotazioni automatiche: ${st.provider==='none'?'spente':PROV[st.provider].name}</button></div>`)}
  ${sec('Backup e promemoria',`<div class="kv" style="border:0"><span>Protezione dalla pulizia automatica</span><b id="perst">…</b></div><p class="note" style="margin:6px 0">${st.lastBackup?`Ultimo backup: ${fmtDate(st.lastBackup)}.`:'Non hai ancora scaricato un backup.'} Il backup contiene tutto e si ripristina su un altro telefono; il CSV contiene solo i movimenti e si apre con Excel.</p>
   <label class="f">Ricordami il backup ogni<select id="stbk">${[[7,'settimana'],[14,'2 settimane'],[30,'mese'],[0,'mai']].map(([v,l])=>`<option value="${v}" ${+st.backupEvery===v?'selected':''}>${l}</option>`).join('')}</select></label>
@@ -1381,7 +1479,7 @@ function settingsSheet(){const st=S.settings;const sec=(t,h)=>`<div style="margi
  $('#stname').onchange=e=>{st.name=e.target.value.trim();save();render()};$('#stcard').onchange=e=>{st.cardCat=e.target.value.trim();save()};
  $('#stcur').onchange=e=>{st.currency=e.target.value;applyCurrency();save();render();toast('Valuta: '+st.currency)};
  $('#stbk').onchange=e=>{st.backupEvery=+e.target.value;save();render()};
- $('#goacc2').onclick=()=>accountsSheet();$('#gores').onclick=()=>reserveSheet();$('#goaccant').onclick=accSheet;$('#goq').onclick=quoteSheet;
+ $('#goacc2').onclick=()=>accountsSheet();$('#gores').onclick=()=>reserveSheet();$('#goaccant').onclick=accSheet;$('#gocards').onclick=cardsSheet;$('#goq').onclick=quoteSheet;
  $('#gopriv').onclick=()=>privacySheet(false);$('#gochg').onclick=()=>changelogSheet();$('#gotour').onclick=()=>tourSheet();
  $('#pickany').onclick=()=>pickFiles('',importAny,true);$('#pickjson').onclick=()=>pickFiles('',importAny);$('#pickbp').onclick=()=>pickFiles('.pdf,application/pdf',importPayslips,true);
  if($('#extmap'))$('#extmap').onclick=()=>extMapSheet(lastExt,()=>{closeSheet();toast('Salvato')});
