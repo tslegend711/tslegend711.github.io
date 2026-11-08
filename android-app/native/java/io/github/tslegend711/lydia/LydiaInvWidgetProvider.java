@@ -125,7 +125,7 @@ public class LydiaInvWidgetProvider extends AppWidgetProvider {
             tc += cost;
             if (pp[1] > 0) {
                 double ch = pp[0] / pp[1] - 1;
-                r.put("d", (ch >= 0 ? "▲ " : "▼ ") + pct(ch).substring(1));
+                r.put("d", (ch >= 0 ? "▲ " : "▼ ") + pct(ch).substring(1) + " oggi");
                 r.put("ds", sgn(ch * 100));
             }
             r.put("g", signed(g));
@@ -149,7 +149,7 @@ public class LydiaInvWidgetProvider extends AppWidgetProvider {
     static double[] price(String sym) {
         HttpURLConnection h = null;
         try {
-            URL u = new URL("https://query1.finance.yahoo.com/v8/finance/chart/" + URLEncoder.encode(sym, "UTF-8") + "?range=5d&interval=1d");
+            URL u = new URL("https://query1.finance.yahoo.com/v8/finance/chart/" + URLEncoder.encode(sym, "UTF-8") + "?range=1mo&interval=1d");
             h = (HttpURLConnection) u.openConnection();
             h.setConnectTimeout(8000);
             h.setReadTimeout(8000);
@@ -164,10 +164,17 @@ public class LydiaInvWidgetProvider extends AppWidgetProvider {
             if (!(p > 0)) return null;
             double prev = 0, lastClose = 0;
             JSONArray cl = res.getJSONObject("indicators").getJSONArray("quote").getJSONObject(0).optJSONArray("close");
+            JSONArray ts = res.optJSONArray("timestamp");
             if (cl != null) {
                 int n = 0;
                 for (int i = cl.length() - 1; i >= 0; i--) {
                     if (cl.isNull(i)) continue;
+                    if (ts != null && i < ts.length()) {
+                        java.util.Calendar cal = java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("Europe/Rome"));
+                        cal.setTimeInMillis(ts.optLong(i, 0) * 1000L);
+                        int dw = cal.get(java.util.Calendar.DAY_OF_WEEK);
+                        if (dw == java.util.Calendar.SATURDAY || dw == java.util.Calendar.SUNDAY) continue;
+                    }
                     n++;
                     if (n == 1) lastClose = cl.optDouble(i, 0);
                     if (n == 2) {
