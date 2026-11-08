@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 200 200">
+<defs>
+<linearGradient id="goldA" x1="0" y1="0" x2="1" y2="1">
+<stop offset="0" stop-color="#e7d391"></stop>
+<stop offset="0.32" stop-color="#D4AF37"></stop>
+<stop offset="0.58" stop-color="#a08429"></stop>
+<stop offset="0.8" stop-color="#D4AF37"></stop>
+<stop offset="1" stop-color="#e7d391"></stop>
+</linearGradient>
+<linearGradient id="floorA" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="200" y2="200">
+<stop offset="0" stop-color="#3f3410"></stop>
+<stop offset="1" stop-color="#6e5b1d"></stop>
+</linearGradient>
+<linearGradient id="sheenA" x1="0" y1="0" x2="0" y2="1">
+<stop offset="0" stop-color="#FFFFFF" stop-opacity="0.38"></stop>
+<stop offset="1" stop-color="#FFFFFF" stop-opacity="0"></stop>
+</linearGradient>
+<linearGradient id="coinA" x1="0" y1="0" x2="0" y2="1">
+<stop offset="0" stop-color="#2A3352"></stop>
+<stop offset="0.55" stop-color="#0B1020"></stop>
+<stop offset="1" stop-color="#141B33"></stop>
+</linearGradient>
+<radialGradient id="glossA" cx="0.5" cy="0.15" r="0.6">
+<stop offset="0" stop-color="#FFFFFF" stop-opacity="0.35"></stop>
+<stop offset="1" stop-color="#FFFFFF" stop-opacity="0"></stop>
+</radialGradient>
+</defs>
+<rect width="200" height="200" fill="url(#goldA)"></rect>
+<polygon points="0,0 120,0 0,120" fill="#FFFFFF" fill-opacity="0.12"></polygon>
+<g transform="translate(1.4 1.4)" stroke="#ecdba5" stroke-width="9">
+<line x1="100" y1="60" x2="100" y2="22"></line>
+<line x1="100" y1="60" x2="100" y2="38" transform="rotate(22.5 100 100)"></line>
+<line x1="100" y1="60" x2="100" y2="30" transform="rotate(45 100 100)"></line>
+<line x1="100" y1="60" x2="100" y2="44" transform="rotate(67.5 100 100)"></line>
+<line x1="100" y1="60" x2="100" y2="22" transform="rotate(90 100 100)"></line>
+<line x1="100" y1="60" x2="100" y2="38" transform="rotate(112.5 100 100)"></line>
+<line x1="100" y1="60" x2="100" y2="30" transform="rotate(135 100 100)"></line>
+<line x1="100" y1="60" x2="100" y2="44" transform="rotate(157.5 100 100)"></line>
+<line x1="100" y1="60" x2="100" y2="22" transform="rotate(180 100 100)"></line>
+<line x1="100" y1="60" x2="100" y2="38" transform="rotate(202.5 100 100)"></line>
+<line x1="100" y1="60" x2="100" y2="30" transform="rotate(225 100 100)"></line>
+<line x1="100" y1="60" x2="100" y2="44" transform="rotate(247.5 100 100)"></line>
+<line x1="100" y1="60" x2="100" y2="22" transform="rotate(270 100 100)"></line>
+<line x1="100" y1="60" x2="100" y2="38" transform="rotate(292.5 100 100)"></line>
+<line x1="100" y1="60" x2="100" y2="30" transform="rotate(315 100 100)"></line>
+<line x1="100" y1="60" x2="100" y2="44" transform="rotate(337.5 100 100)"></line>
+</g>
+<g stroke="#221d0b" stroke-width="9">
+<line x1="100" y1="60" x2="100" y2="22"></line>
+<line x1="100" y1="60" x2="100" y2="38" transform="rotate(22.5 100 100)"></line>
+<line x1="100" y1="60" x2="100" y2="30" transform="rotate(45 100 100)"></line>
+<line x1="100" y1="60" x2="100" y2="44" transform="rotate(67.5 100 100)"></line>
+<line x1="100" y1="60" x2="100" y2="22" transform="rotate(90 100 100)"></line>
+<line x1="100" y1="60" x2="100" y2="38" transform="rotate(112.5 100 100)"></line>
+<line x1="100" y1="60" x2="100" y2="30" transform="rotate(135 100 100)"></line>
+<line x1="100" y1="60" x2="100" y2="44" transform="rotate(157.5 100 100)"></line>
+<line x1="100" y1="60" x2="100" y2="22" transform="rotate(180 100 100)"></line>
+<line x1="100" y1="60" x2="100" y2="38" transform="rotate(202.5 100 100)"></line>
+<line x1="100" y1="60" x2="100" y2="30" transform="rotate(225 100 100)"></line>
+<line x1="100" y1="60" x2="100" y2="44" transform="rotate(247.5 100 100)"></line>
+<line x1="100" y1="60" x2="100" y2="22" transform="rotate(270 100 100)"></line>
+<line x1="100" y1="60" x2="100" y2="38" transform="rotate(292.5 100 100)"></line>
+<line x1="100" y1="60" x2="100" y2="30" transform="rotate(315 100 100)"></line>
+<line x1="100" y1="60" x2="100" y2="44" transform="rotate(337.5 100 100)"></line>
+</g>
+<g transform="translate(1.12 1.12)" stroke="url(#floorA)" stroke-width="5.8">
+<line x1="100" y1="60" x2="100" y2="22"></line>
+<line x1="100" y1="60" x2="100" y2="38" transform="rotate(22.5 100 100)"></line>
+<line x1="100" y1="60" x2="100" y2="30" transform="rotate(45 100 100)"></line>
+<line x1="100" y1="60" x2="100" y2="44" transform="rotate(67.5 100 100)"></line>
+<line x1="100" y1="60" x2="100" y2="22" transform="rotate(90 100 100)"></line>
+<line x1="100" y1="60" x2="100" y2="38" transform="rotate(112.5 100 100)"></line>
+<line x1="100" y1="60" x2="100" y2="30" transform="rotate(135 100 100)"></line>
+<line x1="100" y1="60" x2="100" y2="44" transform="rotate(157.5 100 100)"></line>
+<line x1="100" y1="60" x2="100" y2="22" transform="rotate(180 100 100)"></line>
+<line x1="100" y1="60" x2="100" y2="38" transform="rotate(202.5 100 100)"></line>
+<line x1="100" y1="60" x2="100" y2="30" transform="rotate(225 100 100)"></line>
+<line x1="100" y1="60" x2="100" y2="44" transform="rotate(247.5 100 100)"></line>
+<line x1="100" y1="60" x2="100" y2="22" transform="rotate(270 100 100)"></line>
+<line x1="100" y1="60" x2="100" y2="38" transform="rotate(292.5 100 100)"></line>
+<line x1="100" y1="60" x2="100" y2="30" transform="rotate(315 100 100)"></line>
+<line x1="100" y1="60" x2="100" y2="44" transform="rotate(337.5 100 100)"></line>
+</g>
+<circle cx="100" cy="100" r="31.5" fill="#ecdba5"></circle>
+<circle cx="100" cy="100" r="30" fill="url(#coinA)" fill-opacity="0.9"></circle>
+<ellipse cx="100" cy="88" rx="22" ry="14" fill="url(#glossA)"></ellipse>
+<path d="M93 87 V112 H110" fill="none" stroke="url(#goldA)" stroke-width="6.5" stroke-linecap="square"></path>
+<rect width="200" height="70" fill="url(#sheenA)"></rect>
+<line x1="0" y1="0.75" x2="200" y2="0.75" stroke="#FFFFFF" stroke-opacity="0.7" stroke-width="1.5"></line>
+</svg>

@@ -1,0 +1,76 @@
+{
+ "name": "Lydia",
+ "short_name": "Lydia",
+ "lang": "it",
+ "start_url": "./index.html",
+ "scope": "./",
+ "display": "standalone",
+ "orientation": "portrait",
+ "background_color": "#0B1020",
+ "theme_color": "#0B1020",
+ "icons": [
+  {
+   "src": "icon-192.png",
+   "sizes": "192x192",
+   "type": "image/png",
+   "purpose": "any"
+  },
+  {
+   "src": "icon-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "any"
+  },
+  {
+   "src": "icon-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "maskable"
+  },
+  {
+   "src": "icon.svg",
+   "sizes": "any",
+   "type": "image/svg+xml",
+   "purpose": "any"
+  }
+ ],
+ "shortcuts": [
+  {
+   "name": "Nuova spesa",
+   "short_name": "Spesa",
+   "url": "./index.html#nuova-spesa",
+   "icons": [
+    {
+     "src": "sc-spesa.png",
+     "sizes": "96x96",
+     "type": "image/png"
+    }
+   ]
+  },
+  {
+   "name": "Nuova entrata",
+   "short_name": "Entrata",
+   "url": "./index.html#nuova-entrata",
+   "icons": [
+    {
+     "src": "sc-entrata.png",
+     "sizes": "96x96",
+     "type": "image/png"
+    }
+   ]
+  },
+  {
+   "name": "Giroconto",
+   "short_name": "Giroconto",
+   "url": "./index.html#giroconto",
+   "icons": [
+    {
+     "src": "sc-giro.png",
+     "sizes": "96x96",
+     "type": "image/png"
+    }
+   ]
+  }
+ ],
+ "description": "Spese, stipendi e patrimonio, con tutto quello che gira attorno allo stipendio."
+}

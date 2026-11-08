@@ -1,0 +1,57 @@
+LYDIA – web app installabile e base per l'APK Android
+=====================================================
+
+L'app parte VUOTA. Al primo avvio puoi:
+- importare il backup di Ivy Wallet (il file .zip che esporti da Ivy),
+- importare un CSV (data;tipo;categoria;descrizione;importo),
+- ripristinare un backup di questa app (.json).
+Da Impostazioni puoi sempre esportare: "Scarica backup completo" (.json, tutto) ed "Esporta movimenti CSV".
+I dati restano solo sul telefono.
+
+------------------------------------------------------------
+PASSO 1 – Metti l'app online (gratis, GitHub Pages)
+------------------------------------------------------------
+1. Crea un account su github.com.
+2. Crea un repository chiamato ESATTAMENTE  TUONOME.github.io  (TUONOME = il tuo nome utente GitHub), pubblico.
+   Usare questo nome mette l'app nella radice del sito: serve per l'APK a schermo intero (vedi passo 3).
+3. "Add file" > "Upload files": trascina TUTTI i file e le cartelle di questo zip, compresi
+   .nojekyll e la cartella .well-known (sono file "nascosti": se non li vedi, abilita la vista dei file nascosti).
+4. Settings > Pages > Source "Deploy from a branch", branch "main", cartella "/ (root)".
+5. Dopo 1-2 minuti l'app è su  https://TUONOME.github.io/
+   Prova subito da Chrome sul telefono: menu ⋮ > "Installa app". Questa è già una versione installata.
+
+------------------------------------------------------------
+PASSO 2 – Crea l'APK (PWABuilder, dal browser del computer)
+------------------------------------------------------------
+1. Vai su https://www.pwabuilder.com e incolla  https://TUONOME.github.io/  > Start.
+2. "Package for stores" > Android > "Generate Package".
+   - App name: Lydia
+   - Package ID: per esempio  it.tuonome.lydia
+   - Signing key: lascia "Create new" (la prima volta).
+3. Scarica lo zip. Dentro trovi:
+   - il file .apk  (per installarlo e provarlo sul telefono),
+   - il file .aab  (quello che servirà per il Play Store),
+   - assetlinks.json,
+   - signing.keystore + le password  → CONSERVALI: senza non potrai mai aggiornare l'app sul Play Store.
+
+------------------------------------------------------------
+PASSO 3 – Schermo intero (senza barra dell'indirizzo)
+------------------------------------------------------------
+Carica il file assetlinks.json di PWABuilder nella cartella .well-known del repository
+(deve rispondere a  https://TUONOME.github.io/.well-known/assetlinks.json ).
+Senza questo l'APK funziona lo stesso, ma mostra una barra in alto come un browser.
+
+------------------------------------------------------------
+PASSO 4 – Installa l'APK sul telefono
+------------------------------------------------------------
+1. Copia il file .apk sul telefono (Google Drive, cavo USB, email a te stesso).
+2. Aprilo: Android chiederà di consentire l'installazione da "origini sconosciute" per quell'app
+   (Impostazioni > App > [Drive/File] > Installa app sconosciute > Consenti).
+3. Installa e apri. Tieni premuta l'icona: trovi le scorciatoie Spesa / Entrata / Giroconto.
+
+AGGIORNAMENTI
+- Le modifiche all'app (grafica, funzioni) si caricano solo su GitHub: l'APK le prende da solo, senza reinstallare.
+- Un nuovo APK serve solo se cambiano nome, icona o scorciatoie.
+
+ATTENZIONE AI DATI
+- Fai "Scarica backup completo" ogni tanto. Se disinstalli l'app o cancelli i dati di Chrome, i dati locali spariscono.
