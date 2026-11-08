@@ -29,23 +29,23 @@
   --gutter-l:max(16px,env(safe-area-inset-left,0px)); --gutter-r:max(16px,env(safe-area-inset-right,0px));
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
-  --gold:#E3BC4A; --gold-ink:#E3BC4A; --gold-soft:rgba(227,188,74,.16);
-  --bg:#0C0E13; --blob1:#16306E; --blob2:#0F3B2E; --blob3:#3A1630;
-  --ink:#EAEFF7; --muted:#9AA5B8; --faint:#6D778A;
-  --glass:rgba(24,29,40,.58); --glass-strong:rgba(22,27,37,.9); --glass-line:rgba(255,255,255,.08); --glass-hi:rgba(255,255,255,.06);
+  --gold:#E8C45E; --gold-ink:#EDCD6E; --gold-soft:rgba(232,196,94,.15);
+  --bg:#1B1D22; --blob1:#16306E; --blob2:#0F3B2E; --blob3:#3A1630;
+  --ink:#F1F2F4; --muted:#B4B9C3; --faint:#8C929D;
+  --glass:rgba(44,47,55,.72); --glass-strong:rgba(38,41,48,.95); --glass-line:rgba(255,255,255,.11); --glass-hi:rgba(255,255,255,.07);
   --accent:#6B9BFF; --accent-ink:#0A0D13; --accent-soft:rgba(107,155,255,.16);
   --pos:#43C98A; --neg:#FF6B70; --warn:#FF8F4D; --inc:#32D583; --exp:#F97066; --info:#6B9BFF;
   --c1:#6B9BFF; --c2:#3FCFA4; --c3:#F2A54A; --c4:#EE76A8; --c5:#A48CFF; --c6:#5CC6E8; --c7:#B9C85A; --c8:#7F8899;
-  --shadow:0 10px 30px rgba(0,0,0,.35); color-scheme:dark}}
+  --shadow:0 6px 18px rgba(0,0,0,.22); color-scheme:dark}}
 :root[data-theme="dark"]{
-  --gold:#E3BC4A; --gold-ink:#E3BC4A; --gold-soft:rgba(227,188,74,.16);
-  --bg:#0C0E13; --blob1:#16306E; --blob2:#0F3B2E; --blob3:#3A1630;
-  --ink:#EAEFF7; --muted:#9AA5B8; --faint:#6D778A;
-  --glass:rgba(24,29,40,.58); --glass-strong:rgba(22,27,37,.9); --glass-line:rgba(255,255,255,.08); --glass-hi:rgba(255,255,255,.06);
+  --gold:#E8C45E; --gold-ink:#EDCD6E; --gold-soft:rgba(232,196,94,.15);
+  --bg:#1B1D22; --blob1:#16306E; --blob2:#0F3B2E; --blob3:#3A1630;
+  --ink:#F1F2F4; --muted:#B4B9C3; --faint:#8C929D;
+  --glass:rgba(44,47,55,.72); --glass-strong:rgba(38,41,48,.95); --glass-line:rgba(255,255,255,.11); --glass-hi:rgba(255,255,255,.07);
   --accent:#6B9BFF; --accent-ink:#0A0D13; --accent-soft:rgba(107,155,255,.16);
   --pos:#43C98A; --neg:#FF6B70; --warn:#FF8F4D; --inc:#32D583; --exp:#F97066; --info:#6B9BFF;
   --c1:#6B9BFF; --c2:#3FCFA4; --c3:#F2A54A; --c4:#EE76A8; --c5:#A48CFF; --c6:#5CC6E8; --c7:#B9C85A; --c8:#7F8899;
-  --shadow:0 10px 30px rgba(0,0,0,.35); color-scheme:dark}
+  --shadow:0 6px 18px rgba(0,0,0,.22); color-scheme:dark}
 *,*::before,*::after{box-sizing:border-box;border-radius:0}
 html{background:var(--bg)}
 body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased;min-height:100%}
@@ -83,7 +83,7 @@ section.blk{margin:0 0 14px}
 .card .sub{color:var(--muted);font-size:.84rem;margin:2px 0 0}
 .headrow{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
 .lab{color:var(--muted);font-size:.8rem;font-weight:600;letter-spacing:.02em}
-.eyebrow{color:var(--gold-ink);font-size:.72rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase}
+.eyebrow{color:var(--gold-ink);font-size:.82rem;font-weight:700;letter-spacing:0}
 .pos{color:var(--pos)}.neg{color:var(--neg)}.warn{color:var(--warn)}
 .note{color:var(--muted);font-size:.84rem;margin:0}
 
@@ -225,9 +225,10 @@ tr:last-child td{border-bottom:0}
 /* navigazione */
 nav.tabs{position:fixed;left:var(--gutter-l);right:var(--gutter-r);bottom:calc(10px + env(safe-area-inset-bottom,0px));z-index:30;padding:6px;border:1px solid var(--glass-line);border-radius:999px;background:var(--glass-strong);-webkit-backdrop-filter:blur(22px) saturate(150%);backdrop-filter:blur(22px) saturate(150%);box-shadow:0 10px 30px rgba(10,16,32,.14);max-width:600px;margin:0 auto}
 nav.tabs .in{display:flex;gap:2px}
-nav.tabs button{flex:1;border:0;background:none;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:2px;padding:7px 0 6px;font-size:.7rem;font-weight:700;position:relative;min-width:0;border-radius:999px;transition:background .2s,color .2s}
-nav.tabs button .pill{padding:2px 0}
-nav.tabs button[aria-current="page"]{color:var(--gold-ink);background:var(--gold-soft)}
+nav.tabs button{flex:1;border:0;background:none;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 0 5px;font-size:.66rem;font-weight:700;letter-spacing:-.01em;white-space:nowrap;position:relative;min-width:0;border-radius:999px;transition:color .2s}
+nav.tabs button .pill{display:grid;place-items:center;width:52px;height:30px;border-radius:999px;transition:background .2s}
+nav.tabs button[aria-current="page"]{color:var(--gold-ink)}
+nav.tabs button[aria-current="page"] .pill{background:var(--gold-soft)}
 nav.tabs button[aria-current="page"] .pill{color:var(--gold)}
 nav.tabs button[aria-current="page"] .pill svg{stroke-width:2.2}
 nav.tabs .dot{position:absolute;top:4px;right:calc(50% - 22px);min-width:16px;height:16px;padding:0 4px;background:var(--neg);color:#fff;font-size:.62rem;display:grid;place-items:center}
@@ -328,6 +329,12 @@ nav.tabs{background:rgba(255,255,255,.42);-webkit-backdrop-filter:blur(24px) sat
 .lkpad button svg.i{width:26px;height:26px}.lkpad .lkbio{color:var(--gold-ink)}
 .kdet{margin-top:12px;border:1px solid var(--glass-line);border-radius:var(--r-md,16px);padding:10px 14px}.kdet summary{font-weight:700;cursor:pointer}
 .cardhd{display:flex;align-items:center;justify-content:space-between;gap:10px}.cardhd .chipbtn{padding:8px 14px}.chipbtn:active{transform:scale(.97)}
+.row .s .acn{color:var(--ink);font-weight:700}
+.titrow{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.titrow h3{margin:0;min-width:0}.titrow .chipbtn{flex:none;margin-top:2px}
+.rng{margin-top:10px}.rngbar{position:relative;height:6px;border-radius:999px;background:linear-gradient(90deg,var(--exp),var(--gold),var(--inc));opacity:.85}.rngbar i{position:absolute;top:50%;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:var(--ink);border:3px solid var(--bg)}
+.rnglab{display:flex;justify-content:space-between;gap:8px;margin-top:6px;font-size:.75rem;color:var(--muted)}.rnglab span:nth-child(2){text-align:center}
+.pick{display:flex;flex-direction:column;gap:8px;margin-top:10px}.pickrow{display:flex;gap:12px;align-items:flex-start;padding:12px;border:1px solid var(--glass-line);border-radius:var(--r-md,16px);background:var(--glass)}
+.pickrow:has(input:checked){border-color:var(--gold);background:var(--gold-soft)}.pickrow input{margin-top:3px;width:18px;height:18px;accent-color:var(--gold);flex:none}.pickrow>span{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}.pickrow select{width:100%}
 .linkbtn{display:block;margin:-6px 0 12px auto;padding:4px 6px;border:0;background:none;color:var(--gold-ink);font:inherit;font-size:.85rem;font-weight:700;text-decoration:underline;text-underline-offset:3px}
 .overlay{padding-bottom:var(--kb,0px);transition:padding-bottom .15s}
 .overlay .sheet{max-height:calc(92dvh - var(--kb,0px))}
@@ -355,8 +362,8 @@ input,textarea,select,[contenteditable]{-webkit-user-select:text;user-select:tex
 /* tema scuro: quasi nero con una luce oro in alto, senza sfumature colorate */
 :root[data-theme="dark"] .bgfx i{display:none}
 .bgfx i{display:none}.bgfx{background:var(--bg)}
-:root[data-theme="dark"] .bgfx{background:radial-gradient(120% 60% at 50% -10%,rgba(212,175,55,.16),rgba(212,175,55,0) 60%),#0C0E13}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .bgfx i{display:none}:root:not([data-theme="light"]) .bgfx{background:radial-gradient(120% 60% at 50% -10%,rgba(212,175,55,.16),rgba(212,175,55,0) 60%),#0C0E13}}
+:root[data-theme="dark"] .bgfx{background:var(--bg)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .bgfx i{display:none}:root:not([data-theme="light"]) .bgfx{background:var(--bg)}}
 /* pulsante +: oro pieno ma ancora in vetro (leggermente trasparente, riflesso in alto) */
 .fab,:root[data-theme="dark"] .fab{background:radial-gradient(120% 95% at 30% 12%,rgba(255,236,165,.72),rgba(218,180,62,.52) 45%,rgba(160,124,30,.66) 100%);border-color:rgba(255,240,190,.75);box-shadow:0 10px 26px rgba(160,124,30,.40),inset 0 1px 1px rgba(255,255,255,.9),inset 0 -10px 16px rgba(110,80,10,.30)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .fab{background:radial-gradient(120% 95% at 30% 12%,rgba(255,236,165,.72),rgba(218,180,62,.52) 45%,rgba(160,124,30,.66) 100%);border-color:rgba(255,240,190,.6)}}
@@ -568,8 +575,11 @@ const Q={busy:false,last:null,err:'',timer:null};
 const PROV={yh:{name:'Yahoo Finance',min:1,ex:'VWCE.MI'},td:{name:'Twelve Data',min:2,ex:'VWCE:XETR'},av:{name:'Alpha Vantage',min:30,ex:'VWCE.DEX'}};
 function provKey(){const s=S.settings;return s.provider==='yh'?'yh':s.provider==='td'?s.tdKey:s.provider==='av'?s.avKey:''}
 function setPrice(e,p,d,t){const h=e.hist.find(x=>x.d===d);if(h){h.p=p;if(t)h.t=t}else e.hist.push(t?{d,p,t}:{d,p})}
-async function quoteYahoo(sym){const r=await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?range=5d&interval=1d`);const j=await r.json();const m=j&&j.chart&&j.chart.result&&j.chart.result[0]&&j.chart.result[0].meta;if(!m)throw new Error('Simbolo non trovato');const p=+m.regularMarketPrice;if(!(p>0))throw new Error('Prezzo non disponibile');
-  const pc=+m.chartPreviousClose||+m.previousClose;return{p,d:m.regularMarketTime?iso(new Date(m.regularMarketTime*1000)):today(),chg:pc>0?p/pc-1:null,cur:m.currency}}
+async function quoteYahoo(sym){const r=await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?range=1y&interval=1d`);const j=await r.json();const R0=j&&j.chart&&j.chart.result&&j.chart.result[0];const m=R0&&R0.meta;if(!m)throw new Error('Simbolo non trovato');const p=+m.regularMarketPrice;if(!(p>0))throw new Error('Prezzo non disponibile');
+ const ts=R0.timestamp||[],cl=(R0.indicators&&R0.indicators.quote&&R0.indicators.quote[0]&&R0.indicators.quote[0].close)||[];const hist=[];ts.forEach((t,i)=>{if(cl[i]>0)hist.push({d:iso(new Date(t*1000)),p:Math.round(cl[i]*10000)/10000})});
+ const prev=hist.length>1?hist[hist.length-2].p:(+m.previousClose||0);
+ const info={hi52:+m.fiftyTwoWeekHigh||Math.max(...hist.map(x=>x.p)),lo52:+m.fiftyTwoWeekLow||Math.min(...hist.map(x=>x.p)),dayHi:+m.regularMarketDayHigh||null,dayLo:+m.regularMarketDayLow||null,ex:m.fullExchangeName||m.exchangeName||'',name:m.longName||m.shortName||'',cur:m.currency||'',prev:prev||null};
+ return{p,d:m.regularMarketTime?iso(new Date(m.regularMarketTime*1000)):today(),chg:prev>0?p/prev-1:null,cur:m.currency,hist,info}}
 async function quote(sym){const s=S.settings,k=provKey();
  if(s.provider==='yh')return quoteYahoo(sym);
  if(s.provider==='td'){const[sy,ex]=sym.split(':');const r=await fetch(`https://api.twelvedata.com/quote?symbol=${encodeURIComponent(sy)}${ex?`&mic_code=${encodeURIComponent(ex)}`:''}&apikey=${encodeURIComponent(k)}`);const j=await r.json();
@@ -582,7 +592,7 @@ async function refreshQuotes(manual){const s=S.settings;if(s.provider==='none'||
  if(s.provider==='yh'&&!NATIVE()){if(manual)toast('Il prezzo automatico funziona nell\'app Android. Qui scrivi il prezzo a mano.',5000);return}
  if(s.provider==='yh')for(const e of S.etfs)if(!e.sym&&(e.ticker||e.isin)){try{const r=await searchSym(e.isin||e.ticker);if(r[0])e.sym=r[0].sym}catch(_){}}
  if(Q.busy)return;Q.busy=true;Q.err='';let ok=0;const list=S.etfs.filter(e=>e.sym||(s.provider!=='yh'&&e.ticker));
- for(const e of list){try{let q;try{q=await quote(e.sym||e.ticker)}catch(er){if(s.provider==='yh'||!NATIVE())throw er;if(!e.ysym){const r=await searchYahoo(e.isin||e.ticker||e.name);if(!r[0])throw er;e.ysym=r[0].sym}q=await quoteYahoo(e.ysym)}const t=new Date().toTimeString().slice(0,5);setPrice(e,q.p,q.d,t);e.chg=isFinite(q.chg)?q.chg:null;ok++}
+ for(const e of list){try{let q;try{q=await quote(e.sym||e.ticker)}catch(er){if(s.provider==='yh'||!NATIVE())throw er;if(!e.ysym){const r=await searchYahoo(e.isin||e.ticker||e.name);if(!r[0])throw er;e.ysym=r[0].sym}q=await quoteYahoo(e.ysym)}const t=new Date().toTimeString().slice(0,5);setPrice(e,q.p,q.d,t);if(q.hist&&q.hist.length>5)e.yhist=q.hist;if(q.info)e.info=q.info;e.chg=isFinite(q.chg)?q.chg:null;ok++}
   catch(err){if(err&&/pro|plan|grow|venture|upgrade|premium/i.test(err.message||''))err=new Error('il servizio scelto lo dà solo a pagamento: in Impostazioni › Prezzi dei titoli scegli Yahoo');Q.err=(err&&err.message==='Failed to fetch')||err instanceof TypeError?'Le quotazioni automatiche non sono raggiungibili da questa versione: usa l\'app installata':`${e.ticker||e.name}: ${err.message}`;if(err instanceof TypeError)break}}
  Q.busy=false;if(ok){Q.last=new Date();save()}if(manual)toast(Q.err||`Prezzi aggiornati (${ok} su ${list.length})`,Q.err?6000:2600);
  if(!$('#ov').classList.contains('open')&&(tab==='patrimonio'||tab==='home'))render()}
@@ -659,6 +669,26 @@ function render(){
 }
 
 /* ---------- HOME ---------- */
+/* periodo del grafico "Dove vanno i soldi": come in alto, oppure scelto lì */
+let pieP=null;
+function pieRange(R){const mon=k=>monthLabel(k);const cnt=(a,b)=>Math.max(1,new Set(AM().filter(m=>m.type==='out'&&m.date>=a&&m.date<=b).map(m=>m.date.slice(0,7))).size);
+ if(!pieP)return{a:R.a,b:R.b,label:R.label,short:R.label,n:per.kind==='mese'?1:cnt(R.a,R.b)};
+ if(pieP.k==='m')return{a:pieP.m+'-01',b:pieP.m+'-31',label:mon(pieP.m),short:mon(pieP.m),n:1};
+ if(pieP.k==='y')return{a:pieP.y+'-01-01',b:pieP.y+'-12-31',label:'anno '+pieP.y,short:String(pieP.y),n:cnt(pieP.y+'-01-01',pieP.y+'-12-31')};
+ if(pieP.k==='r'){const a=pieP.a<=pieP.b?pieP.a:pieP.b,b=pieP.a<=pieP.b?pieP.b:pieP.a;return{a:a+'-01',b:b+'-31',label:`da ${mon(a)} a ${mon(b)}`,short:`${shortK(a)} – ${shortK(b)}`,n:cnt(a+'-01',b+'-31')}}
+ const ds=S.movs.map(m=>m.date).sort();return{a:ds[0]||'0000',b:ds[ds.length-1]||'9999',label:'tutti i movimenti',short:'Tutto',n:cnt(ds[0]||'0000',ds[ds.length-1]||'9999')}}
+function pieSheet(){const months=[...new Set(S.movs.map(m=>m.date.slice(0,7)))].sort().reverse();const years=[...new Set(months.map(k=>k.slice(0,4)))];const P=pieP||{k:'h'};const R=periodRange();
+ const opt=(k,t,extra)=>`<label class="pickrow"><input type="radio" name="pk" value="${k}" ${P.k===k?'checked':''}><span><b>${t}</b>${extra||''}</span></label>`;
+ openSheet(`<h3>Quale periodo?</h3><p class="note" style="margin-top:-6px">Per il grafico "Dove vanno i soldi".</p><div class="pick">
+ ${opt('h','Come in alto',`<span class="note">${esc(R.label)}</span>`)}
+ ${opt('m','Un mese',`<select id="pkm" class="sel">${months.map(k=>`<option value="${k}" ${(P.m||curK())===k?'selected':''}>${esc(monthLabel(k))}</option>`).join('')}</select>`)}
+ ${opt('y','Un anno',`<select id="pky" class="sel">${years.map(y=>`<option ${String(P.y||curK().slice(0,4))===y?'selected':''}>${y}</option>`).join('')}</select>`)}
+ ${opt('r','Da un mese a un altro',`<span style="display:flex;flex-direction:column;gap:6px"><select id="pka" class="sel">${months.slice().reverse().map(k=>`<option value="${k}" ${(P.a||months[Math.min(11,months.length-1)])===k?'selected':''}>${esc(monthLabel(k))}</option>`).join('')}</select><select id="pkb" class="sel">${months.map(k=>`<option value="${k}" ${(P.b||months[0])===k?'selected':''}>${esc(monthLabel(k))}</option>`).join('')}</select></span>`)}
+ ${opt('all','Tutto','<span class="note">Dal primo movimento a oggi</span>')}</div>
+ <div class="actions"><button class="btn gold" id="pkok">Mostra</button></div>`);
+ $$('.pick select').forEach(x=>x.onchange=()=>{x.closest('.pickrow').querySelector('input').checked=true});$$('.pick select').forEach(x=>x.onfocus=()=>{x.closest('.pickrow').querySelector('input').checked=true});
+ $('#pkok').onclick=()=>{const k=$('.pick input:checked').value;pieP=k==='h'?null:k==='m'?{k,m:$('#pkm').value}:k==='y'?{k,y:$('#pky').value}:k==='r'?{k,a:$('#pka').value,b:$('#pkb').value}:{k:'all'};closeSheet();render();setTimeout(()=>{const el=$('#cpie');if(el)el.closest('section').scrollIntoView({block:'start'})},60)}}
+function trendEnd(){const R=periodRange();return per.kind==='anno'?R.months[11]:per.kind==='mese'?R.months[0]:completeMonths()}
 function periodRange(){const k=per.kind;
  if(k==='mese'){const mk_=shiftK(curK(),per.off);return{a:mk_+'-01',b:mk_+'-31',label:monthLabel(mk_),prev:()=>{const p=shiftK(mk_,-1);return[p+'-01',p+'-31']},months:[mk_]}}
  if(k==='anno'){const y=+curK().slice(0,4)+per.off;const ms=[];for(let i=1;i<=12;i++)ms.push(`${y}-${pad(i)}`);return{a:`${y}-01-01`,b:`${y}-12-31`,label:String(y),prev:()=>[`${y-1}-01-01`,`${y-1}-12-31`],months:ms}}
@@ -680,7 +710,7 @@ function renderHome(){const main=$('#main');
  const R=periodRange(),cur=agg(inRange(R.a,R.b)),[pa,pb]=R.prev(),prv=agg(inRange(pa,pb));const W=wealth();const nm=Math.max(1,R.months.filter(k=>byMonth(k).length).length);
  const dl=(v,p,goodUp)=>{if(!p)return '<span class="d">Nessun dato nel periodo prima</span>';const d=(v-p)/Math.abs(p);return `<span class="d ${(goodUp?d>=0:d<=0)?'pos':'neg'}">${sPct(d)} sul periodo prima</span>`};
  const tips=insights().filter(x=>x.lv!=='info').slice(0,2);
- const pie=catSpend(inRange(R.a,R.b));const pieTot=sum(pie,x=>x[1]);
+ const PR=pieRange(R);const pie=catSpend(inRange(PR.a,PR.b));const pieTot=sum(pie,x=>x[1]);
  const sh=cur.entrate+cur.netta>0?cur.entrate/(cur.entrate+Math.max(0,cur.netta))*100:50;
  main.innerHTML=bigTitle(hello(),`Patrimonio <b class="num" style="color:var(--ink)">${eur0(W.tot)}</b> tra conti, investimenti e fondo pensione.`)+'<button class="homesearch" id="hsearch" type="button"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><span>Cosa vuoi fare?</span></button>'+backupBanner()+`
  <section class="blk"><div class="seg" role="group" aria-label="Periodo">${[['mese','Mese'],['12m','12 mesi'],['anno','Anno']].map(([k,l])=>`<button data-kind="${k}" aria-pressed="${per.kind===k}">${l}</button>`).join('')}</div>
@@ -696,17 +726,17 @@ function renderHome(){const main=$('#main');
  ${S.accounts.length?`<section class="blk glass card"><div class="headrow"><h2>Conti</h2><button class="btn ghost sm" id="gacc">Gestisci</button></div><div class="list">${S.accounts.map(a=>{const b=accBal(a);return `<button class="row" data-goacc="${esc(a.name)}" style="padding:10px 0"><div class="main"><div class="t">${esc(a.name)}</div><div class="s">${accTypeLabel(a.type)}</div></div><div class="amt num ${b<0?'neg':''}">${eur(b)}</div></button>`}).join('')}</div></section>`:''}
  ${(()=>{const L=S.movs.map((m,i)=>[m,i]).sort((x,y)=>x[0].date<y[0].date?1:x[0].date>y[0].date?-1:y[1]-x[1]).slice(0,5).map(x=>x[0]);return L.length?`<section class="blk glass card"><div class="headrow"><h2>Ultimi movimenti</h2><button class="btn ghost sm" id="gomov">Tutti</button></div><div class="list" id="hlast">${L.map(rowHTML).join('')}</div></section>`:''})()}
  ${tips.length?`<section class="blk glass"><div class="card" style="padding-bottom:4px"><div class="headrow" style="margin:0"><h2>Da fare</h2><button class="btn ghost sm" id="alltips">Tutti i consigli</button></div></div>${tips.map(tipHTML).join('')}</section>`:''}
- <section class="blk glass card"><h2>Entrate e spese, mese per mese</h2><p class="sub">Le spese sono al netto dei rimborsi.</p><div class="chart lg" style="margin-top:10px"><div class="cv" id="ctrend"></div></div></section>
- <section class="blk glass card"><h2>Dove vanno i soldi</h2><p class="sub">Spese del periodo per categoria.</p>
-  ${pie.length?`<div class="chart sm" style="margin-top:10px"><div class="cv" id="cpie"></div></div><div class="legend">${pie.slice(0,10).map(([c,v])=>`<div class="lrow"><i class="sw" style="background:${catColor(c)}"></i><span class="nm">${esc(c)}</span><span class="note num">${Math.round(v/pieTot*100)}%</span>${per.kind!=='mese'?`<span class="note num" style="min-width:70px;text-align:right">${eur0(v/nm)}/mese</span>`:''}<b class="num">${eur0(v)}</b></div>`).join('')}${pie.length>10?`<p class="note" style="padding-top:8px">Altre ${pie.length-10} categorie per ${eur0(sum(pie.slice(10),x=>x[1]))}.</p>`:''}</div>`:'<p class="note" style="margin-top:10px">Nessuna spesa nel periodo.</p>'}</section>
+ <section class="blk glass card"><h2>Entrate e spese, mese per mese</h2><p class="sub">12 mesi fino a ${esc(monthLabel(trendEnd()))} · spese al netto dei rimborsi.</p><div class="chart lg" style="margin-top:10px"><div class="cv" id="ctrend"></div></div></section>
+ <section class="blk glass card"><div class="cardhd"><h2 style="margin:0">Dove vanno i soldi</h2><button class="chipbtn" id="piep" type="button"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>${esc(PR.short)}</button></div><p class="sub">Spese per categoria · ${esc(PR.label)}.</p>
+  ${pie.length?`<div class="chart sm" style="margin-top:10px"><div class="cv" id="cpie"></div></div><div class="legend">${pie.slice(0,10).map(([c,v])=>`<div class="lrow"><i class="sw" style="background:${catColor(c)}"></i><span class="nm">${esc(c)}</span><span class="note num">${Math.round(v/pieTot*100)}%</span>${PR.n>1?`<span class="note num" style="min-width:70px;text-align:right">${eur0(v/PR.n)}/mese</span>`:''}<b class="num">${eur0(v)}</b></div>`).join('')}${pie.length>10?`<p class="note" style="padding-top:8px">Altre ${pie.length-10} categorie per ${eur0(sum(pie.slice(10),x=>x[1]))}.</p>`:''}</div>`:'<p class="note" style="margin-top:10px">Nessuna spesa nel periodo.</p>'}</section>
  <section class="blk glass card"><div class="headrow"><h2>Patrimonio</h2><button class="btn ghost sm" id="gopat">Dettagli</button></div>
   <div class="tiles t4" style="gap:8px">${[['Liquidità',W.cash],['Investimenti',W.etf],[fundName(),W.cometa],['Debiti',-W.debt]].map(([l,v])=>`<div><div class="lab">${l}</div><div class="num" style="font-weight:800;font-size:1.1rem">${eur0(v)}</div></div>`).join('')}</div></section>`;
  $$('[data-kind]').forEach(b=>b.onclick=()=>{per={kind:b.dataset.kind,off:0};render()});
  if($('#pprev')){$('#pprev').onclick=()=>{per.off--;render()};$('#pnext').onclick=()=>{if(per.off<0){per.off++;render()}}}
  if($('#alltips'))$('#alltips').onclick=()=>go('consigli');bindTipActions();bindBackupBanner();$('#hsearch').onclick=()=>searchSheet();
- $('#gopat').onclick=()=>go('patrimonio');if($('#gomov'))$('#gomov').onclick=()=>go('movimenti');if($('#hlast'))$('#hlast').onclick=e=>{const r=e.target.closest('[data-id]');if(!r)return;const m=S.movs.find(x=>x.id===r.dataset.id);if(m&&m.split)splitSheet(m);else movForm(m)};if($('#gacc'))$('#gacc').onclick=()=>accountsSheet();$$('[data-goacc]').forEach(b=>b.onclick=()=>{mf={q:'',t:'all',m:'all',c:'all',a:b.dataset.goacc};go('movimenti')});
+ $('#gopat').onclick=()=>go('patrimonio');if($('#piep'))$('#piep').onclick=pieSheet;if($('#gomov'))$('#gomov').onclick=()=>go('movimenti');if($('#hlast'))$('#hlast').onclick=e=>{const r=e.target.closest('[data-id]');if(!r)return;const m=S.movs.find(x=>x.id===r.dataset.id);if(m&&m.split)splitSheet(m);else movForm(m)};if($('#gacc'))$('#gacc').onclick=()=>accountsSheet();$$('[data-goacc]').forEach(b=>b.onclick=()=>{mf={q:'',t:'all',m:'all',c:'all',a:b.dataset.goacc};go('movimenti')});
  // trend
- const end=per.kind==='anno'?R.months[11]:per.kind==='mese'?R.months[0]:completeMonths();const ks=[];for(let i=11;i>=0;i--)ks.push(shiftK(end,-i));
+ const end=trendEnd();const ks=[];for(let i=11;i>=0;i--)ks.push(shiftK(end,-i));
  const md=ks.map(k=>agg(byMonth(k)));
  mk('ctrend',{aria:'Entrate e spese per mese',labels:ks.map(shortK),series:[{label:'Entrate',color:css('--inc'),data:md.map(x=>x.entrate)},{label:'Spese',color:css('--exp'),data:md.map(x=>x.netta)}]});
  if(pie.length)mk('cpie',{kind:'donut',aria:'Spese per categoria',labels:pie.map(x=>x[0]),values:pie.map(x=>x[1]),colors:pie.map(x=>catColor(x[0])),center:eur0(pieTot)});
@@ -748,8 +778,8 @@ function selBar(){let b=$('#selbar');if(!b){b=document.createElement('div');b.id
  $('#selx').onclick=()=>{msel=null;drawMovList()};
  $('#selall').onclick=()=>{$$('#movlist [data-id]').forEach(r=>msel.add(r.dataset.id));drawMovList()};
  $('#seld').onclick=async()=>{const n=msel.size;const tot=sum(S.movs.filter(m=>msel.has(m.id)),m=>m.amount);if(await ask(`Eliminare ${n} ${n===1?'movimento':'movimenti'}?`,`In tutto ${eur(tot)}. Non si può annullare.`,'Elimina',true)){S.movs=S.movs.filter(m=>!msel.has(m.id));msel=null;save();render();toast(`${n} ${n===1?'movimento eliminato':'movimenti eliminati'}`)}}}
-function rowHTML(m){const sl=msel&&tab==='movimenti'?(msel.has(m.id)?' sel':' selable'):'';if(m.type==='tr')return `<button class="row${sl}" data-id="${m.id}"><span class="ico" style="background:${css('--c8')}">${catIcon('','tr')}</span><div class="main"><div class="t">${esc(m.acct)} → ${esc(m.to||'?')}</div><div class="s">Giroconto${m.desc?' · '+esc(m.desc):''} · ${fmtDate(m.date)}</div></div><div class="amt num">${eur(m.amount)}</div></button>`;const sign=m.type==='in'?'+':'−';const cls=m.type==='in'?'pos':'';const col=m.type==='in'?css('--pos'):m.type==='inv'?css('--c5'):catColor(m.cat);
- return `<button class="row${sl}" data-id="${m.id}"><span class="ico" style="background:${col}">${catIcon(m.cat,m.type)}</span><div class="main"><div class="t">${esc(m.desc||m.cat)}</div><div class="s">${m.split?`<b style="color:var(--gold-ink)">${m.split.items.length} ${m.split.items.length===1?'spesa':'spese'} della carta</b> · `:''}${esc(m.cat)}${m.type==='inv'?' · investimento':''}${m.straord?' · straordinaria':''}${S.accounts.length>1&&m.acct?' · '+esc(m.acct):''} · ${fmtDate(m.date)}${m.bank?' <span title="Verificato con la banca" style="color:var(--pos)">✓</span>':''}${m.imp&&impLabel(m.imp)?' <span class="imptag">estratto</span>':''}</div></div><div class="amt num ${cls}">${sign}${eur(m.amount)}</div></button>`}
+function rowHTML(m){const sl=msel&&tab==='movimenti'?(msel.has(m.id)?' sel':' selable'):'';if(m.type==='tr')return `<button class="row${sl}" data-id="${m.id}"><span class="ico" style="background:${css('--c8')}">${catIcon('','tr')}</span><div class="main"><div class="t">${esc(m.desc||'Giroconto')}</div><div class="s"><b class="acn">${esc(m.acct)} → ${esc(m.to||'?')}</b> · ${fmtDate(m.date)}</div></div><div class="amt num">${eur(m.amount)}</div></button>`;const sign=m.type==='in'?'+':'−';const cls=m.type==='in'?'pos':'';const col=m.type==='in'?css('--pos'):m.type==='inv'?css('--c5'):catColor(m.cat);
+ return `<button class="row${sl}" data-id="${m.id}"><span class="ico" style="background:${col}">${catIcon(m.cat,m.type)}</span><div class="main"><div class="t">${esc(m.desc||m.cat)}</div><div class="s">${m.split?`<b style="color:var(--gold-ink)">${m.split.items.length} ${m.split.items.length===1?'spesa':'spese'} della carta</b> · `:''}${m.acct?`<b class="acn">${esc(m.acct)}</b> · `:''}${esc(m.cat)}${m.type==='inv'?' · investimento':''}${m.straord?' · straordinaria':''} · ${fmtDate(m.date)}${m.bank?' <span title="Verificato con la banca" style="color:var(--pos)">✓</span>':''}${m.imp&&impLabel(m.imp)?' <span class="imptag">estratto</span>':''}</div></div><div class="amt num ${cls}">${sign}${eur(m.amount)}</div></button>`}
 function allCats(t){const since=iso(new Date(Date.now()-180*864e5));const cnt={};for(const m of S.movs)if(m.type===t&&m.date>=since)cnt[m.cat]=(cnt[m.cat]||0)+1;
  return[...new Set([...CATS[t]||[],...S.movs.filter(m=>m.type===t).map(m=>m.cat)])].sort((x,y)=>(cnt[y]||0)-(cnt[x]||0))}
 function accounts(){const own=S.accounts.map(a=>a.name);return[...new Set([...(own.length?own:(S.settings.accounts||[])),...S.movs.flatMap(m=>[m.acct,m.to]).filter(Boolean)])]}
@@ -1363,19 +1393,25 @@ function etfForm(e){const isNew=!e;let sym=e?e.sym||'':'';
   if(isNew){const n={id:uid(),name,ticker,isin,sym,kind:kindV,ops:[],hist:[]};const q=parseNum($('#eqty').value),p=parseNum($('#eprice').value);if(q>0&&p>0){const d=$('#edate').value||today();n.ops.push({id:uid(),date:d,qty:q,price:p,fee:parseNum($('#efee').value)||0});n.hist.push({d,p})}S.etfs.push(n);save();render();etfDetail(n.id);toast(`${KIND_L[kindV]} aggiunto`);autoSym(n);if(n.sym)refreshQuotes(false)}
   else{e.name=name;e.ticker=ticker;if(isin)e.isin=isin;e.sym=sym;e.kind=kindV;save();render();etfDetail(e.id);toast('Salvato');autoSym(e);if(e.sym)refreshQuotes(false)}}}
 function etfDetail(id){const e=S.etfs.find(x=>x.id===id);if(!e){closeSheet();return}
- const st=etfStats(e),p=curPrice(e),v=st.qty*p,g=v-st.cost,h=sortedHist(e),ops=e.ops.slice().sort((a,b)=>a.date<b.date?1:-1);const auto=S.settings.provider!=='none'&&e.sym;
- openSheet(`<h3>${esc(e.name)}</h3><p class="note" style="margin-top:-6px">${esc(KIND_L[e.kind]||'ETF')}${e.ticker?' · '+esc(e.ticker):''}${e.isin?' · '+esc(e.isin):''}</p>
- <div class="glass card" style="margin-top:12px"><div class="cardhd"><div class="eyebrow">La tua posizione</div><button class="chipbtn" id="epos" type="button"><svg class="i" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M14 6l4 4"/></svg>Correggi</button></div><p class="note" style="margin:2px 0 6px">Quello che hai comprato, come nell'app della banca.</p>
+ const st=etfStats(e),p=curPrice(e),v=st.qty*p,g=v-st.cost,h=sortedHist(e),ops=e.ops.slice().sort((a,b)=>a.date<b.date?1:-1);const auto=S.settings.provider!=='none'&&(e.sym||e.ysym);const I=e.info||null;
+ const buys=e.ops.filter(o=>!o.set&&o.qty>0),sells=e.ops.filter(o=>!o.set&&o.qty<0);const first=e.ops.map(o=>o.date).sort()[0];
+ const pen='<svg class="i" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M14 6l4 4"/></svg>';
+ const rng=I&&I.hi52>I.lo52&&p?`<div class="rng"><div class="rngbar"><i style="left:${Math.max(0,Math.min(100,(p-I.lo52)/(I.hi52-I.lo52)*100))}%"></i></div><div class="rnglab"><span>${eur(I.lo52)}</span><span>Minimo e massimo dell'ultimo anno</span><span>${eur(I.hi52)}</span></div></div>`:'';
+ openSheet(`<div class="titrow"><h3>${esc(e.name)}</h3><button class="chipbtn" id="eedit" type="button">${pen}Nome e ticker</button></div><p class="note" style="margin-top:2px">${esc(KIND_L[e.kind]||'ETF')}${e.ticker?' · '+esc(e.ticker):''}${e.isin?' · '+esc(e.isin):''}${I&&I.ex?' · '+esc(I.ex):''}</p>
+ <div class="glass card" style="margin-top:12px"><div class="cardhd"><div class="eyebrow">La tua posizione</div><button class="chipbtn" id="epos" type="button">${pen}Correggi</button></div><p class="note" style="margin:2px 0 6px">Quello che hai comprato, come nell'app della banca.</p>
   <div class="kv"><span>Quote</span><b class="num">${fq(st.qty)}</b></div><div class="kv"><span>Prezzo medio di carico</span><b class="num">${eur(st.qty?st.cost/st.qty:0)}</b></div><div class="kv"><span>Investito</span><b class="num">${eur(st.cost)}</b></div></div>
- <div class="glass card" style="margin-top:10px"><div class="cardhd"><div class="eyebrow">Valore di mercato</div><button class="chipbtn" id="eprice" type="button"><svg class="i" viewBox="0 0 24 24">${auto?'<path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/>':'<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M14 6l4 4"/>'}</svg>${auto?'Aggiorna ora':'Prezzo di oggi'}</button></div><p class="note" style="margin:2px 0 6px">${auto?`Si aggiorna da solo (${esc(e.sym)})`:'Prezzo di borsa di oggi, lo scrivi tu'}${priceDate(e)?` · al ${fmtDate(priceDate(e))}`:''}</p>
-  <div class="kv"><span>Prezzo di oggi</span><b class="num">${p?eur(p):'–'}</b></div><div class="kv"><span>Valore</span><b class="num">${eur(v)}</b></div><div class="kv"><span>Guadagno</span><b class="num ${g>=0?'pos':'neg'}">${sEur(g)} ${st.cost?`(${sPct(g/st.cost)})`:''}</b></div></div>
- ${h.length>1?'<div class="chart sm" style="margin-top:14px"><div class="cv" id="cetf"></div></div>':''}
- <div class="headrow" style="margin-top:18px"><h3 style="font-size:1rem;margin:0">Acquisti e vendite</h3><button class="btn sm" id="eop">Aggiungi</button></div><div class="list" id="oplist">${ops.map(o=>o.set?`<button class="row" data-op="${o.id}" style="padding:10px 0"><div class="main"><div class="t">Posizione corretta</div><div class="s">${fmtDate(o.date)} · ${fq(o.qty)} quote a ${eur(o.qty?o.cost/o.qty:0)} di media</div></div><div class="amt num">${eur0(o.cost)}</div></button>`:`<button class="row" data-op="${o.id}" style="padding:10px 0"><div class="main"><div class="t">${o.qty>0?'Acquisto':'Vendita'} di ${fq(Math.abs(o.qty))} quote</div><div class="s">${fmtDate(o.date)} a ${eur(o.price)}${o.fee?`, commissioni ${eur(o.fee)}`:''}${o.note?' · '+esc(o.note):''}</div></div><div class="amt num">${eur0(Math.abs(o.qty)*o.price+(o.fee||0))}</div></button>`).join('')||'<p class="note">Nessuna operazione.</p>'}</div>
- <div class="actions"><button class="btn danger" id="edel">Elimina</button><button class="btn ghost" id="eedit">Nome e ticker</button></div>`);
+ <div class="glass card" style="margin-top:10px"><div class="cardhd"><div class="eyebrow">Valore di mercato</div><button class="chipbtn" id="eprice" type="button"><svg class="i" viewBox="0 0 24 24">${auto?'<path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/>':'<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M14 6l4 4"/>'}</svg>${auto?'Aggiorna ora':'Prezzo di oggi'}</button></div><p class="note" style="margin:2px 0 6px">${auto?`Si aggiorna da solo (${esc(e.sym||e.ysym)})`:'Prezzo di borsa di oggi, lo scrivi tu'}${priceDate(e)?` · al ${fmtDate(priceDate(e))}`:''}</p>
+  <div class="kv"><span>Prezzo di oggi</span><b class="num">${p?eur(p):'–'}${e.chg!=null&&isFinite(e.chg)?` <span class="${e.chg>=0?'pos':'neg'}" style="font-weight:600">${sPct(e.chg)}</span>`:''}</b></div><div class="kv"><span>Valore</span><b class="num">${eur(v)}</b></div><div class="kv"><span>Guadagno</span><b class="num ${g>=0?'pos':'neg'}">${sEur(g)} ${st.cost?`(${sPct(g/st.cost)})`:''}</b></div>${rng}</div>
+ ${(e.yhist&&e.yhist.length>5)||h.length>1?`<div class="glass card" style="margin-top:10px"><div class="eyebrow">${e.yhist&&e.yhist.length>5?'Prezzo nell\'ultimo anno':'Prezzo nel tempo'}</div><p class="note" style="margin:2px 0 4px">La linea tratteggiata è il tuo prezzo medio di carico.</p><div class="chart sm"><div class="cv" id="cetf"></div></div></div>`:''}
+ <div class="glass card" style="margin-top:10px"><div class="cardhd"><div class="eyebrow">Acquisti e vendite</div><button class="chipbtn" id="eop" type="button"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Aggiungi</button></div>
+  <p class="note" style="margin:2px 0 6px">${buys.length?`${buys.length} ${buys.length===1?'acquisto':'acquisti'}${sells.length?` e ${sells.length} ${sells.length===1?'vendita':'vendite'}`:''}${first?` dal ${fmtDate(first)}`:''}. Ogni acquisto nuovo aggiorna quote e prezzo medio.`:'Quando compri altre quote, aggiungile qui: quote e prezzo medio si aggiornano da soli.'}</p>
+  <div class="list" id="oplist">${ops.map(o=>o.set?`<button class="row" data-op="${o.id}" style="padding:10px 0"><div class="main"><div class="t">Posizione corretta</div><div class="s">${fmtDate(o.date)} · ${fq(o.qty)} quote a ${eur(o.qty?o.cost/o.qty:0)} di media</div></div><div class="amt num">${eur0(o.cost)}</div></button>`:`<button class="row" data-op="${o.id}" style="padding:10px 0"><div class="main"><div class="t">${o.qty>0?'Acquisto':'Vendita'} di ${fq(Math.abs(o.qty))} quote</div><div class="s">${fmtDate(o.date)} a ${eur(o.price)}${o.fee?`, commissioni ${eur(o.fee)}`:''}${o.note?' · '+esc(o.note):''}</div></div><div class="amt num ${o.qty<0?'pos':''}">${o.qty<0?'+':''}${eur0(Math.abs(o.qty)*o.price+(o.qty>0?(o.fee||0):-(o.fee||0)))}</div></button>`).join('')||''}</div></div>
+ <div class="actions" style="justify-content:center"><button class="btn danger sm" id="edel">Elimina dal patrimonio</button></div>`);
  $('#eprice').onclick=()=>{if(auto){refreshQuotes(true).then(()=>etfDetail(id))}else priceForm(id)};$('#eop').onclick=()=>opForm(id);$('#eedit').onclick=()=>etfForm(e);$('#epos').onclick=()=>posForm(id);
  $('#oplist').onclick=ev=>{const r=ev.target.closest('[data-op]');if(!r)return;const o=e.ops.find(o=>o.id===r.dataset.op);if(o.set)posForm(id,o);else opForm(id,o)};
  $('#edel').onclick=async()=>{if(await ask(`Eliminare ${e.name}?`,'Verranno eliminati anche acquisti, vendite e prezzi.','Elimina',true)){S.etfs=S.etfs.filter(x=>x.id!==id);save();render()}else etfDetail(id)};
- if(h.length>1)mk('cetf',{aria:'Prezzo nel tempo',minAuto:true,labels:h.map(x=>fmtDate(x.d)),series:[{label:'Prezzo',type:'line',dots:true,color:css('--c1'),data:h.map(x=>x.p),fmt:v=>eur(v)}],fmtAxis:v=>v.toLocaleString('it-IT',{maximumFractionDigits:2})})}
+ const H=e.yhist&&e.yhist.length>5?e.yhist:h;const avg=st.qty?st.cost/st.qty:null;
+ if(H.length>1)mk('cetf',{aria:'Prezzo nel tempo',minAuto:true,labels:H.map(x=>H.length>40?shortK(x.d.slice(0,7)):fmtDate(x.d)),series:[{label:'Prezzo',type:'line',dots:H.length<30,color:css('--c1'),data:H.map(x=>x.p),fmt:v=>eur(v)},...(avg?[{label:'Tuo prezzo medio',type:'line',dash:true,color:css('--gold'),data:H.map(()=>avg),fmt:v=>eur(v)}]:[])],fmtAxis:v=>v.toLocaleString('it-IT',{maximumFractionDigits:2})})}
 /* posizione come la mostra la banca: quote e prezzo medio di carico */
 function posForm(eid,op){const e=S.etfs.find(x=>x.id===eid);const st=etfStats(e);
  openSheet(`<h3>Correggi posizione</h3><p class="note" style="margin-top:-6px">${esc(e.name)}. Copia quote e prezzo medio di carico dall'app della banca: Lydia si allinea, gli acquisti di prima restano nello storico.</p>
@@ -1597,8 +1633,8 @@ function fixBalSheet(a){const cur=Math.round(accBal(a)*100)/100;openSheet(`<h3>C
  $('#fxx').onclick=closeSheet;$('#fxs').onclick=()=>{const v=parseNum($('#fxv').value);if(isNaN(v)){toast('Scrivi un importo');return}setAccBal(a,v);save();closeSheet();render();toast(`Saldo di ${a.name} aggiornato`)}}
 
 /* ---------- privacy, backup, novità ---------- */
-const APP_VERSION='1.8.3';
-const CHANGELOG=[['1.8.3','8 novembre 2026',["Titoli: pulsanti Correggi e Aggiorna ora più visibili"]],['1.8.2','8 novembre 2026',["Se il servizio dei prezzi scelto non copre un titolo (es. chiede il piano a pagamento), nell'app Android il prezzo arriva da Yahoo"]],['1.8.1','8 novembre 2026',["Legge anche gli estratti conto UniCredit e quelli con la descrizione su più righe","Uscite ed entrate riconosciute dalla colonna giusta; saldo finale preso dall'estratto"]],['1.8.0','8 novembre 2026',["Saldo corretto subito dopo ogni spesa o entrata, anche se il conto è stato verificato oggi","Home: ultimi movimenti e mese in corso","Estratti conto: niente doppioni se carichi lo stesso periodo due volte; puoi eliminare un estratto caricato","Estratti: addebito della carta aggiungibile se manca; spese già segnate a mano non contate due volte","Stipendio dalla banca e dalla busta paga non viene registrato due volte","Stessa voce su più righe (es. PayPal): scegli se la descrizione vale per tutte","Lettura di estratti e buste paga di altre banche e aziende","Blocco con PIN e impronta","Impostazioni più semplici; icone per le categorie","Tieni premuto un movimento per selezionarne tanti ed eliminarli","Titoli: ETF, azioni e fondi; prezzo automatico dal ticker o dall'ISIN nell'app Android","Posizione modificabile con quote e prezzo medio di carico della banca","Proiezione che si aggiorna mentre scrivi e resta salvata","Fondo pensione più chiaro","Backup con data e ora nel nome"]],['1.7.3','8 novembre 2026',["La barra in basso non si sposta più: né quando tiri la pagina su o giù, né quando si apre la tastiera","App Android: la barra non finisce più sopra la linea delle gesture dopo aver chiuso la tastiera"]],['1.7.2','8 novembre 2026',["Barra in alto, barra in basso e pulsante + restano fermi mentre scorri","Movimenti: pulsante per caricare l'estratto conto della banca o della carta","Pulsante + più trasparente","App Android: sfondo anche sotto la barra delle gesture; widget ridisegnati"]],
+const APP_VERSION='1.8.4';
+const CHANGELOG=[['1.8.4','8 novembre 2026',["Tema scuro più chiaro e riposante: grigio grafite al posto del nero","Barra in basso: le scritte non vengono più tagliate","Movimenti: il conto è in grassetto su ogni riga","Dove vanno i soldi: scegli mese, anno, tutto o da un mese a un altro","Ogni grafico dice a che periodo si riferisce","Titoli: nome e ticker in alto, riepilogo degli acquisti, grafico dell'ultimo anno, minimo e massimo"]],['1.8.3','8 novembre 2026',["Titoli: pulsanti Correggi e Aggiorna ora più visibili"]],['1.8.2','8 novembre 2026',["Se il servizio dei prezzi scelto non copre un titolo (es. chiede il piano a pagamento), nell'app Android il prezzo arriva da Yahoo"]],['1.8.1','8 novembre 2026',["Legge anche gli estratti conto UniCredit e quelli con la descrizione su più righe","Uscite ed entrate riconosciute dalla colonna giusta; saldo finale preso dall'estratto"]],['1.8.0','8 novembre 2026',["Saldo corretto subito dopo ogni spesa o entrata, anche se il conto è stato verificato oggi","Home: ultimi movimenti e mese in corso","Estratti conto: niente doppioni se carichi lo stesso periodo due volte; puoi eliminare un estratto caricato","Estratti: addebito della carta aggiungibile se manca; spese già segnate a mano non contate due volte","Stipendio dalla banca e dalla busta paga non viene registrato due volte","Stessa voce su più righe (es. PayPal): scegli se la descrizione vale per tutte","Lettura di estratti e buste paga di altre banche e aziende","Blocco con PIN e impronta","Impostazioni più semplici; icone per le categorie","Tieni premuto un movimento per selezionarne tanti ed eliminarli","Titoli: ETF, azioni e fondi; prezzo automatico dal ticker o dall'ISIN nell'app Android","Posizione modificabile con quote e prezzo medio di carico della banca","Proiezione che si aggiorna mentre scrivi e resta salvata","Fondo pensione più chiaro","Backup con data e ora nel nome"]],['1.7.3','8 novembre 2026',["La barra in basso non si sposta più: né quando tiri la pagina su o giù, né quando si apre la tastiera","App Android: la barra non finisce più sopra la linea delle gesture dopo aver chiuso la tastiera"]],['1.7.2','8 novembre 2026',["Barra in alto, barra in basso e pulsante + restano fermi mentre scorri","Movimenti: pulsante per caricare l'estratto conto della banca o della carta","Pulsante + più trasparente","App Android: sfondo anche sotto la barra delle gesture; widget ridisegnati"]],
  ['1.7.1','8 novembre 2026',["Tema scuro: sfondo quasi nero con una luce oro in alto, senza sfumature colorate","App Android: la barra in alto continua sotto l'ora e le notifiche, e lo sfondo continua sotto la barra delle gesture"]],
  ['1.7.0','8 novembre 2026',["Estratto conto della banca: ritrova i movimenti che hai già registrato, ne corregge la data con quella della banca e aggiunge quelli che mancano","Ti mostra anche le spese che hai in Lydia ma non nell'estratto, e confronta il saldo","I movimenti verificati con la banca hanno una spunta verde"]],
  ['1.6.0','8 novembre 2026',["Estratti conto delle carte: carichi il PDF e l'addebito della carta si divide nelle singole spese, ognuna con la sua categoria","Più carte, ognuna con il suo conto e il tipo di pagamento (saldo a fine mese o revolving)","Se l'addebito non è ancora arrivato, l'estratto resta in attesa e si collega da solo","Le categorie che correggi vengono ricordate per i mesi successivi"]],
@@ -1634,8 +1670,8 @@ let wTimer;function syncWidget(){if(!(window.Capacitor&&window.Capacitor.isNativ
  const data={mov,inv};
  P.setData({data:JSON.stringify(data)}).catch(()=>{})}catch(e){}},400)}
 function syncBars(){const P=window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform()&&window.Capacitor.Plugins&&window.Capacitor.Plugins.LydiaWidget;if(!P||!P.setBars)return;
- const dark=document.documentElement.getAttribute('data-theme')==='dark'||(!document.documentElement.getAttribute('data-theme')&&matchMedia('(prefers-color-scheme: dark)').matches);const c=(css('--bg')||(dark?'#0A0D13':'#F3F3F0')).trim();
- P.setBars({color:/^#[0-9a-f]{6}$/i.test(c)?c:(dark?'#0A0D13':'#F3F3F0'),light:!dark}).catch(()=>{})}
+ const dark=document.documentElement.getAttribute('data-theme')==='dark'||(!document.documentElement.getAttribute('data-theme')&&matchMedia('(prefers-color-scheme: dark)').matches);const c=(css('--bg')||(dark?'#1B1D22':'#F3F3F0')).trim();
+ P.setBars({color:/^#[0-9a-f]{6}$/i.test(c)?c:(dark?'#1B1D22':'#F3F3F0'),light:!dark}).catch(()=>{})}
 {document.documentElement.setAttribute('translate','no');document.documentElement.classList.add('notranslate');if(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform()){document.documentElement.classList.add('native');const gi=()=>{const P=window.Capacitor.Plugins&&window.Capacitor.Plugins.LydiaWidget;if(P&&P.getInsets)P.getInsets().then(r=>{if(r&&r.top>0)document.documentElement.style.setProperty('--sat',r.top+'px');if(r&&r.bottom>0)document.documentElement.style.setProperty('--sab',r.bottom+'px')}).catch(()=>{})};gi();setTimeout(gi,600);addEventListener('resize',()=>setTimeout(gi,200))}const _at=applyTheme;applyTheme=function(){_at();syncBars()}}
 function openLink(url){const k=String(url||'').replace(/^lydia:\/\//,'').replace(/[\/?#].*$/,'');if(QUICK[k])quickFromHash(k);else if(TABS.includes(k)){closeSheet();go(k)}}
 /* ---------- backup sicuro ---------- */
