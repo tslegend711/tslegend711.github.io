@@ -922,19 +922,20 @@ function reserveSheet(first){const s=S.settings;const o={salary:s.salary||Math.r
  <div class="f2"><div class="f">In casa entra solo il tuo stipendio?<div class="seg" id="rsg" style="margin-top:6px"><button data-v="1" aria-pressed="${o.single}">Sì</button><button data-v="0" aria-pressed="${!o.single}">No</button></div></div>
  <div class="f">Persone a carico (figli, partner senza reddito)?<div class="seg" id="rdp" style="margin-top:6px"><button data-v="1" aria-pressed="${o.dependents}">Sì</button><button data-v="0" aria-pressed="${!o.dependents}">No</button></div></div></div>
  <div class="resbox" id="rres"></div>
+ <label class="f" style="margin-top:12px">Oppure scrivi tu la cifra (${CS()})<input id="rman" inputmode="decimal" placeholder="Lascia vuoto per usare la proposta"></label>
  <p class="note" style="margin-top:10px">Metodo: mesi di spese da coprire (di solito 3–6 con uno stipendio fisso, 6–12 con un reddito variabile) più uno stipendio per le spese varie che non sono emergenze ma arrivano comunque: auto, dentista, un elettrodomestico. Le spese già previste, come un viaggio, mettile negli accantonamenti.</p>
- <div class="actions"><button class="btn ghost" id="rx">${first?'Più tardi':'Annulla'}</button>${s.reserve>0?`<button class="btn ghost" id="rkeep">Tieni ${eur0(s.reserve)}</button>`:''}<button class="btn gold" id="rok">Usa la proposta</button></div>`);
+ <div class="actions"><button class="btn ghost" id="rx">${first?'Più tardi':'Annulla'}</button><button class="btn gold" id="rok">Usa la proposta</button></div>`);
  let R;const draw=()=>{o.salary=parseNum($('#rsal').value)||0;o.spese=parseNum($('#rsp').value)||0;o.job=$('#rjob').value;R=reserveCalc(o);
   $('#rres').innerHTML=R.sal||R.spese?`<div class="eyebrow">Proposta</div><div class="big num">${eur0(R.tot)}</div>
   <div class="kv"><span>Spese al mese, ${esc(R.src)}</span><b class="num">${eur0(R.spese)}</b></div>
   <div class="kv"><span>Mesi da coprire: ${R.mesi} <span class="note">(${esc(R.why.join(', '))})</span></span><b class="num">${eur0(R.base)}</b></div>
   <div class="kv"><span>Spese varie e imprevisti: uno stipendio</span><b class="num">${eur0(R.varie)}</b></div>
-  ${s.reserve>0?`<div class="kv"><span>La tua riserva attuale</span><b class="num">${eur0(s.reserve)}</b></div>`:''}`:'<p class="note" style="margin:0">Scrivi lo stipendio netto per vedere la proposta.</p>';$('#rok').disabled=!(R.tot>0);$('#rok').textContent=R.tot>0?`Usa ${eur0(R.tot)}`:'Usa la proposta'};
+  ${s.reserve>0?`<div class="kv"><span>La tua riserva attuale</span><b class="num">${eur0(s.reserve)}</b></div>`:''}`:'<p class="note" style="margin:0">Scrivi lo stipendio netto per vedere la proposta.</p>';const man=parseNum($('#rman').value);$('#rok').disabled=!(man>0||R.tot>0);$('#rok').textContent=man>0?`Usa ${eur0(man)}`:R.tot>0?`Usa ${eur0(R.tot)}`:'Usa la proposta'};
  const segB=(id,key)=>$(id).onclick=e=>{const b=e.target.closest('[data-v]');if(!b)return;o[key]=b.dataset.v==='1';$$(id+' button').forEach(x=>x.setAttribute('aria-pressed',x===b));draw()};segB('#rsg','single');segB('#rdp','dependents');
- ['#rsal','#rsp'].forEach(i=>$(i).oninput=draw);$('#rjob').onchange=draw;draw();
+ ['#rsal','#rsp','#rman'].forEach(i=>$(i).oninput=draw);$('#rjob').onchange=draw;draw();
  const keep=()=>{s.salary=o.salary;s.spese=o.spese;s.job=o.job;s.single=o.single;s.dependents=o.dependents;s.reserveAsked=true};
- $('#rx').onclick=()=>{s.reserveAsked=true;save();closeSheet()};if($('#rkeep'))$('#rkeep').onclick=()=>{keep();save();closeSheet();render();toast('Riserva confermata')};
- $('#rok').onclick=()=>{keep();s.reserve=R.tot;save();closeSheet();render();toast('Riserva di emergenza: '+eur0(R.tot))}}
+ $('#rx').onclick=()=>{s.reserveAsked=true;save();closeSheet()};
+ $('#rok').onclick=()=>{const man=parseNum($('#rman').value);const v=man>0?Math.round(man):R.tot;if(!(v>0))return;keep();s.reserve=v;save();closeSheet();render();toast('Riserva di emergenza: '+eur0(v))}}
 
 /* ---------- CONTI ---------- */
 function accMonthEnd(a,k){const e=k+'-31';return(+a.adj||0)+sum(S.movs.filter(m=>m.date<=e),m=>movDelta(m,a.name))}
@@ -1001,9 +1002,9 @@ function tourSheet(then,i=0){const st=TOUR[i],last=i===TOUR.length-1;if(tab!==st
  const end=()=>{S.settings.tourDone=true;save();closeSheet();tab='home';try{history.replaceState(null,'','#home')}catch(e){}render();if(then)then()};
  if($('#tskip'))$('#tskip').onclick=end;if($('#tback'))$('#tback').onclick=()=>tourSheet(then,i-1);$('#tnext').onclick=()=>last?end():tourSheet(then,i+1)}
 function welcomeFlow(){const s=S.settings;if(!s.privacyOk){privacySheet(true,welcomeFlow);return}
- if(!s.tourDone&&!S.movs.length){s.seenVersion=APP_VERSION;save();tourSheet(()=>{if(!(S.settings.salary>0)&&!S.settings.reserveAsked)reserveSheet(true)});return}
+ if(!s.tourDone&&!S.movs.length){s.seenVersion=APP_VERSION;save();tourSheet(()=>{if(!(S.settings.salary>0)&&!S.settings.reserveAsked){S.settings.reserveAsked=true;save();reserveSheet(true)}});return}
  s.tourDone=true; if(s.seenVersion!==APP_VERSION){const old=s.seenVersion;s.seenVersion=APP_VERSION;save();if(old||S.movs.length){changelogSheet(welcomeFlow);return}}
- if(!(s.salary>0)&&!s.reserveAsked)reserveSheet(true)}
+ if(!(s.salary>0)&&!s.reserveAsked){s.reserveAsked=true;save();reserveSheet(true)}}
 
 /* ---------- IMPOSTAZIONI E DATI ---------- */
 const dlP=(window.claude&&typeof window.claude.use==='function')?window.claude.use('downloads').catch(()=>null):Promise.resolve(null);
