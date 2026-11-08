@@ -942,23 +942,31 @@ function gTokens(L){const out=[];for(const c of L.cells){let s=c.s,x=c.x;const p
  return out}
 function gDate(s){const m=s.match(G_DATE);if(!m)return null;const y=m[3].length===2?'20'+m[3]:m[3];if(+m[2]<1||+m[2]>12||+m[1]<1||+m[1]>31||+y<2000||+y>2100)return null;return `${y}-${pad(+m[2])}-${pad(+m[1])}`}
 function gAmt(s){const t=s.replace(/€|\s/g,'');const neg=/^-|-$/.test(t),plus=/^\+|\+$/.test(t);return{v:parseNum(t.replace(/[-+]/g,'')),neg,plus}}
-function genericRows(lines){let cols=null;const rows=[];let cur=null;
+function genericRows(lines){let cols=null,order=null;const rows=[],texts=[];let endBal=null;
+ const isAmt=x=>G_AMT.test(x.s.replace(/\s/g,''));
  for(const L of lines){const t=lineText(L);
-  if(/\b(data|date)\b/i.test(t)&&/(descrizione|causale|operazione|dettagl|movimento|esercente|importo|dare|avere)/i.test(t)&&!L.cells.some(c=>G_DATE.test(c.s))){const c={};
+  if(/\b(data|date)\b/i.test(t)&&/(descrizione|causale|operazione|dettagl|movimento|esercente|importo|dare|avere|uscite|entrate)/i.test(t)&&!L.cells.some(c=>G_DATE.test(c.s))){const c={};
    for(const x of L.cells){const s=x.s;if(/dare|addebit|uscit|pagament/i.test(s))c.out=x.x;else if(/avere|accredit|entrat/i.test(s))c.in=x.x;else if(/saldo/i.test(s))c.bal=x.x;else if(/importo|ammontare|euro/i.test(s))c.amt=x.x}
-   cols=c;cur=null;continue}
-  const tk=gTokens(L);const di=tk.findIndex((x,i)=>i<3&&gDate(x.s));
-  if(di>=0){const dates=tk.filter(x=>gDate(x.s));const am=tk.filter(x=>G_AMT.test(x.s.replace(/\s/g,'')));const words=tk.filter(x=>!gDate(x.s)&&!G_AMT.test(x.s.replace(/\s/g,''))&&!/^CR$/i.test(x.s));
-   if(!am.length){cur=null;continue}
-   let a=am.slice();if(cols&&cols.bal!=null&&a.length>1){const bi=a.reduce((b,x,i)=>Math.abs(x.x-cols.bal)<Math.abs(a[b].x-cols.bal)?i:b,0);a.splice(bi,1)}
-   else if(a.length>1&&!(cols&&cols.out!=null&&cols.in!=null))a=[a[0]];
-   const pick=a[0];const v=gAmt(pick.s);let col=null;if(cols&&cols.out!=null&&cols.in!=null)col=Math.abs(pick.x-cols.out)<=Math.abs(pick.x-cols.in)?'out':'in';
+   const io=t.search(/dare|uscit|addebit/i),ii=t.search(/avere|entrat|accredit/i);order=io>=0&&ii>=0?(io<ii?'out-in':'in-out'):null;cols=c;continue}
+  const tk=gTokens(L);
+  // riga di un movimento: comincia con una data e ha un importo
+  if(tk.length&&gDate(tk[0].s)&&tk.some(isAmt)){const dates=tk.filter(x=>gDate(x.s));const am=tk.filter(isAmt);const words=tk.filter((x,i)=>!(i<3&&gDate(x.s))&&!isAmt(x)&&!/^CR$/i.test(x.s));
    const desc=words.map(w=>w.s).join(' ').replace(/\s+/g,' ').trim();
-   if(/^(saldo|totale|riporto)/i.test(desc)){cur=null;continue}
-   cur={date:gDate(dates[0].s),val:dates[1]?gDate(dates[1].s):null,abs:v.v,neg:v.neg,plus:v.plus,col,cr:tk.some(x=>/^CR$/i.test(x.s)),desc,more:[]};if(cur.abs>0)rows.push(cur);else cur=null;continue}
-  if(cur&&tk.length&&!tk.some(x=>G_AMT.test(x.s.replace(/\s/g,'')))&&!/saldo|totale|pagina|pag\.\s*\d/i.test(t)&&cur.more.length<3)cur.more.push(t);else cur=null}
- rows.forEach(r=>{r.text=(r.desc+' '+r.more.join(' ')).replace(/\s+/g,' ').trim();if(!r.desc)r.desc=r.more[0]||'Movimento'});
- return rows}
+   if(/^saldo (finale|contabile|al)/i.test(desc)){endBal={v:gAmt(am[am.length-1].s).v,d:gDate(dates[0].s),neg:/debito/i.test(desc)};continue}
+   if(/^(saldo|totale|riporto)/i.test(desc))continue;
+   let a=am.slice();if(cols&&cols.bal!=null&&a.length>1&&cols.out!==cols.bal){const bi=a.reduce((b,x,i)=>Math.abs(x.x-cols.bal)<Math.abs(a[b].x-cols.bal)?i:b,0);a.splice(bi,1)}else if(a.length>1)a=[a[0]];
+   const v=gAmt(a[0].s);const r={p:L.p,y:L.y,date:gDate(dates[0].s),val:dates[1]?gDate(dates[1].s):null,abs:v.v,neg:v.neg,plus:v.plus,ax:a[0].x,col:null,cr:tk.some(x=>/^CR$/i.test(x.s)),own:desc,more:[]};if(r.abs>0)rows.push(r);continue}
+  texts.push({p:L.p,y:L.y,t})}
+ // colonne uscite/entrate: dalla posizione nell'intestazione, oppure dai due gruppi di importi
+ if(cols&&cols.out!=null&&cols.in!=null&&Math.abs(cols.out-cols.in)>20)rows.forEach(r=>r.col=Math.abs(r.ax-cols.out)<=Math.abs(r.ax-cols.in)?'out':'in');
+ else if(order&&rows.length>1){const mx=Math.max(...rows.map(r=>r.ax));const ok=r=>r.ax>=mx*.6;const xs=[...new Set(rows.filter(ok).map(r=>Math.round(r.ax)))].sort((a,b)=>a-b);let gap=0,cut=null;for(let i=1;i<xs.length;i++)if(xs[i]-xs[i-1]>gap){gap=xs[i]-xs[i-1];cut=(xs[i]+xs[i-1])/2}
+  if(gap>25)rows.forEach(r=>{if(!ok(r))return;const left=r.ax<cut;r.col=order==='out-in'?(left?'out':'in'):(left?'in':'out')})}
+ // testo sopra e sotto la riga: va al movimento più vicino
+ for(const x of texts){let best=null,bd=11;for(const r of rows){if(r.p!==x.p)continue;const d=Math.abs(r.y-x.y);if(d<bd){bd=d;best=r}}if(best)best.more.push(x)}
+ rows.forEach(r=>{const parts=[...r.more,{y:r.y,t:r.own}].filter(x=>x.t).sort((a,b)=>b.y-a.y).map(x=>x.t);r.text=parts.join(' ').replace(/\s+/g,' ').trim();r.desc=r.text||'Movimento';
+  const pos=r.text.match(/\bdel (\d{2})\/(\d{2})\/(\d{4})/i);if(pos&&/CARTA|POS|PAY|NFC/i.test(r.text))r.opDate=`${pos[3]}-${pos[2]}-${pos[1]}`;
+  let m;if((m=r.text.match(/CARTA \*\d+ DI\s?EUR [\d.,]+ (.+)$/i)))r.merchant=m[1];else if((m=r.text.match(/\bA:\s?([A-Z' .]+?)\s*PER:/i)))r.merchant='Bonifico a '+m[1].trim();else if((m=r.text.match(/\bDA:\s?([A-Z0-9' .&]+?)\s*PER:/i)))r.merchant=m[1].trim();else if((m=r.text.match(/SDD da \S+?([A-Z][A-Za-z ]{3,40}?)(?:\s+(?:ITALIA|SOCIETA|S\.?\s?A|mandato))/)))r.merchant=m[1].trim()});
+ rows.endBal=endBal;return rows}
 const IN_WORDS=/accredit|a (suo|vostro|tuo) favore|stipendi|emolument|rimbors|storno|bonifico (in entrata|ricevuto)|versamento|interessi creditori|cedola|dividend/i;
 function parseGeneric(lines){const top=lines.slice(0,40).map(lineText).join(' ');const all=lines.map(lineText).join('\n');
  const rows=genericRows(lines);if(rows.length<2)return null;
@@ -975,11 +983,11 @@ function parseGeneric(lines){const top=lines.slice(0,40).map(lineText).join(' ')
   st.sum=Math.round((sum(st.items.filter(x=>!x.cr),x=>x.amount)-sum(st.items.filter(x=>x.cr),x=>x.amount))*100)/100;if(st.due==null)st.due=st.sum;
   if(!st.last)st.last=String(st.issuer).slice(0,4).toUpperCase();return st}
  const st={kind:'bank',generic:true,acctNo:'',balance:null,rows:[]};let r;
- if((r=all.replace(/\s/g,'').match(/IT\d{2}[A-Z]\d{10}[A-Z0-9]{12}/)))st.acctNo=r[0].slice(-4);else if((r=all.match(/conto(?: corrente)?\s*(?:n\.?|numero|nr\.?)\s*:?\s*([\d\s\/-]{4,})/i)))st.acctNo=r[1].replace(/\D/g,'').slice(-4);
- const signed=rows.some(x=>x.neg),cols=rows.some(x=>x.col);
- st.rows=rows.map(x=>{const out=signed?x.neg:cols&&x.col?x.col==='out':!(x.plus||IN_WORDS.test(x.text));const amt=Math.round(x.abs*100)/100*(out?-1:1);return{date:x.date,book:x.date,val:x.val||x.date,amount:amt,title:x.desc,text:x.text,merchant:x.desc.replace(/^(pagamento|pag\.?|acquisto|addebito|pos|carta)\s+/i,'').slice(0,60),more:x.more}});
+ if((r=all.replace(/\s/g,'').match(/IT\d{2}[A-Z]\d{10}[A-Z0-9]{12}/)))st.acctNo=r[0].slice(-4);else if((r=all.match(/conto(?: corrente)?\s*(?:n\.?|n°|numero|nr\.?)?\s*:?\s*(\d[\d\/-]{5,})/i)))st.acctNo=r[1].replace(/\D/g,'').slice(-4);
+ const signed=rows.some(x=>x.neg),cols=rows.some(x=>x.col);st.bankName=((top.match(/unicredit|intesa sanpaolo|fineco|bnl|banco bpm|bper|credem|mediolanum|n26|revolut|ing\b|poste|bancoposta|monte dei paschi|mps|crédit agricole|credit agricole|widiba|hype|banca sella|che banca|chebanca|webank|illimity/i)||[])[0]||'');
+ st.rows=rows.map(x=>{const out=signed?x.neg:x.col?x.col==='out':!(x.plus||IN_WORDS.test(x.text));const amt=Math.round(x.abs*100)/100*(out?-1:1);const mer=(x.merchant||x.desc.replace(/^(pagamento|pag\.?|acquisto|addebito|pos|carta)\s+/i,'')).replace(/\s+/g,' ').trim().slice(0,60);return{date:x.opDate||x.date,book:x.date,val:x.val||x.date,amount:amt,title:mer,text:x.text,merchant:mer,more:[]}});
  st.rows.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);st.from=st.rows[0].date;st.to=st.rows[st.rows.length-1].date;
- if((r=all.match(/saldo (?:contabile )?(?:finale|al \d{1,2}[\/.]\d{1,2}[\/.]\d{2,4}|disponibile)\D{0,30}(-?[\d.]+,\d{2})/i)))st.lastBal={v:parseNum(r[1]),d:st.to};
+ if(rows.endBal)st.lastBal={v:rows.endBal.neg?-rows.endBal.v:rows.endBal.v,d:rows.endBal.d||st.to};else if((r=all.match(/saldo (?:contabile )?(?:finale|disponibile)[^\d\n-]{0,30}(-?[\d.]+,\d{2})/i)))st.lastBal={v:parseNum(r[1]),d:st.to};
  return st}
 const PAY_WORDS=/cedolino|busta paga|netto (in busta|del mese|a pagare|da pagare)|totale competenze|totale trattenute|retribuzione|imponibile (fiscale|previdenziale)/i;
 /* categorie: prima quello che hai già scelto tu, poi l'indicazione dell'estratto, poi le parole del negozio */
@@ -1018,10 +1026,10 @@ function parseBankList(lines){const st={kind:'bank',acctNo:'',iban4:'',balance:n
  st.rows.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);st.from=st.rows.length?st.rows[0].date:'';st.to=st.rows.length?st.rows[st.rows.length-1].date:'';
  return st}
 
-const BANK_RULES=[[/HO-?MOBILE|ILIAD|\bTIM\b|VODAFONE|WIND ?TRE|FASTWEB|KENA|VERY MOBILE/i,'Telefono'],[/PESISTICA|PALESTRA|FITNESS|\bGYM\b|PISCINA|SPORT/i,'Sport'],[/BOLLO|IMPOSTA|COMMISSION|CANONE|SPESE (?:TENUTA|CONTO)|COMPETENZE/i,'Spese banca'],[/ENEL|HERA|A2A|ACEA|IREN|EDISON|ENI PLENITUDE|SORGENIA|GAS|LUCE|ACQUA|TARI/i,'Bollette']];
+const BANK_RULES=[[/HO-?MOBILE|ILIAD|\bTIM\b|VODAFONE|WIND ?TRE|FASTWEB|KENA|VERY MOBILE/i,'Telefono'],[/PESISTICA|PALESTRA|FITNESS|\bGYM\b|PISCINA|SPORT/i,'Sport'],[/BOLLO|IMPOSTA|COMMISSION|CANONE|SPESE (?:TENUTA|CONTO)|COMPETENZE|COSTO FISSO|MY GENIUS/i,'Spese banca'],[/RATA MUTUO|RATA PRESTITO|MUTUO\/PRESTITO|FINANZIAM/i,'Prestiti'],[/CONDOMINIO|AFFITTO|CANONE LOCAZ/i,'Casa'],[/ENEL|HERA|A2A|ACEA|IREN|EDISON|ENI PLENITUDE|SORGENIA|GAS|LUCE|ACQUA|TARI/i,'Bollette']];
 function histCat(name){const n=nrm(name);if(n.length<3)return '';const cnt={};for(const m of S.movs){if(m.type!=='out'||!m.desc||m.split)continue;const d=nrm(m.desc);if(d.length>=4&&(n.includes(d)||d.includes(n.split(' ')[0]&&n.split(' ')[0].length>=5?n.split(' ')[0]:'#@#')))cnt[m.cat]=(cnt[m.cat]||0)+1}const e=Object.entries(cnt).sort((a,b)=>b[1]-a[1])[0];return e?e[0]:''}
 function bankClassify(r,acct){const T=r.text,name=r.merchant||r.title;const cash=S.accounts.find(a=>a.type==='contanti'&&a.name!==acct);
- if(r.amount>0){if(/EMOLUMENT|STIPENDI|SALARY|RETRIBUZ|CEDOLINO/i.test(T)){const dec=r.date.slice(5,7)==='12'&&/13|TREDIC/i.test(T);return{type:'in',cat:dec?'Tredicesima':'Stipendio',desc:'Stipendio'+(r.merchant?' · '+r.merchant.toLowerCase().replace(/(^|\s)\S/g,c=>c.toUpperCase()):''),src:'regola'}}
+ if(r.amount>0){if(r.amount>=200&&/EMOLUMENT|STIPENDI|SALARY|RETRIBUZ|CEDOLINO/i.test(T)){const dec=r.date.slice(5,7)==='12'&&/13|TREDIC/i.test(T);return{type:'in',cat:dec?'Tredicesima':'Stipendio',desc:'Stipendio'+(r.merchant?' · '+r.merchant.toLowerCase().replace(/(^|\s)\S/g,c=>c.toUpperCase()):''),src:'regola'}}
   if(/STORNO|RIMBORS|RESTITUZ/i.test(T))return{type:'in',cat:'Rimborso',desc:name,src:'regola'};return{type:'in',cat:'Altre entrate',desc:name,src:''}}
  if(/AMERICAN EXPRESS|\bAMEX\b/i.test(T))return{type:'out',cat:S.settings.cardCat||'Carta di credito',desc:'Addebito American Express',src:'regola',card:true};
  if(/PRELIEV|PRELEVAMENTO|\bATM\b|CASH POINT/i.test(T)&&cash)return{type:'tr',cat:'Giroconto',desc:'Prelievo',to:cash.name,src:'regola'};
@@ -1181,7 +1189,7 @@ function cardsSheet(){const draw=()=>{openSheet(`<h3>Carte di credito</h3><p cla
 async function importPayslips(files,origin){if(!files.length)return;if(!S.accounts.length){accountsSheet(()=>importPayslips(files,origin),'Prima crea il conto principale: poi leggo il PDF.');return}
  busy(true,files.length>1?`Leggo ${files.length} PDF…`:'Leggo il PDF…');const res=[],stmts=[];const withTO=(pr,ms)=>Promise.race([pr,new Promise((_,rej)=>setTimeout(()=>rej(new Error('Il PDF è troppo complesso da leggere')),ms))]);
  for(const f of files){try{if(f.size>20*1024*1024)throw new Error('File troppo grande');const L=await withTO(pdfLines(await f.arrayBuffer()),20000);if(!L.length)throw new Error('Nel PDF non c\'è testo: forse è una foto o una scansione');
-   if(isBankList(L)){const st=parseBankList(L);if(!st.rows.length)throw new Error('Non trovo movimenti in questo estratto');stmts.push(st);continue}
+   if(isBankList(L)){const st=parseBankList(L);if(st.rows.length){stmts.push(st);continue}}
    if(isCardStatement(L)){const st=parseCardStatement(L);if(!st.last||st.due==null)throw new Error('Non riesco a leggere questo estratto conto');stmts.push(st);continue}
    const T=L.map(lineText).join('\n');const pay=PAY_WORDS.test(T);const r=parsePayslip(L,f.name);
    if(pay&&(r.found.netto||r.found.lordo||r.found.month)){res.push({f,...r,partial:!r.found.netto});continue}
@@ -1585,8 +1593,8 @@ function fixBalSheet(a){const cur=Math.round(accBal(a)*100)/100;openSheet(`<h3>C
  $('#fxx').onclick=closeSheet;$('#fxs').onclick=()=>{const v=parseNum($('#fxv').value);if(isNaN(v)){toast('Scrivi un importo');return}setAccBal(a,v);save();closeSheet();render();toast(`Saldo di ${a.name} aggiornato`)}}
 
 /* ---------- privacy, backup, novità ---------- */
-const APP_VERSION='1.8.0';
-const CHANGELOG=[['1.8.0','8 novembre 2026',["Saldo corretto subito dopo ogni spesa o entrata, anche se il conto è stato verificato oggi","Home: ultimi movimenti e mese in corso","Estratti conto: niente doppioni se carichi lo stesso periodo due volte; puoi eliminare un estratto caricato","Estratti: addebito della carta aggiungibile se manca; spese già segnate a mano non contate due volte","Stipendio dalla banca e dalla busta paga non viene registrato due volte","Stessa voce su più righe (es. PayPal): scegli se la descrizione vale per tutte","Lettura di estratti e buste paga di altre banche e aziende","Blocco con PIN e impronta","Impostazioni più semplici; icone per le categorie","Tieni premuto un movimento per selezionarne tanti ed eliminarli","Titoli: ETF, azioni e fondi; prezzo automatico dal ticker o dall'ISIN nell'app Android","Posizione modificabile con quote e prezzo medio di carico della banca","Proiezione che si aggiorna mentre scrivi e resta salvata","Fondo pensione più chiaro","Backup con data e ora nel nome"]],['1.7.3','8 novembre 2026',["La barra in basso non si sposta più: né quando tiri la pagina su o giù, né quando si apre la tastiera","App Android: la barra non finisce più sopra la linea delle gesture dopo aver chiuso la tastiera"]],['1.7.2','8 novembre 2026',["Barra in alto, barra in basso e pulsante + restano fermi mentre scorri","Movimenti: pulsante per caricare l'estratto conto della banca o della carta","Pulsante + più trasparente","App Android: sfondo anche sotto la barra delle gesture; widget ridisegnati"]],
+const APP_VERSION='1.8.1';
+const CHANGELOG=[['1.8.1','8 novembre 2026',["Legge anche gli estratti conto UniCredit e quelli con la descrizione su più righe","Uscite ed entrate riconosciute dalla colonna giusta; saldo finale preso dall'estratto"]],['1.8.0','8 novembre 2026',["Saldo corretto subito dopo ogni spesa o entrata, anche se il conto è stato verificato oggi","Home: ultimi movimenti e mese in corso","Estratti conto: niente doppioni se carichi lo stesso periodo due volte; puoi eliminare un estratto caricato","Estratti: addebito della carta aggiungibile se manca; spese già segnate a mano non contate due volte","Stipendio dalla banca e dalla busta paga non viene registrato due volte","Stessa voce su più righe (es. PayPal): scegli se la descrizione vale per tutte","Lettura di estratti e buste paga di altre banche e aziende","Blocco con PIN e impronta","Impostazioni più semplici; icone per le categorie","Tieni premuto un movimento per selezionarne tanti ed eliminarli","Titoli: ETF, azioni e fondi; prezzo automatico dal ticker o dall'ISIN nell'app Android","Posizione modificabile con quote e prezzo medio di carico della banca","Proiezione che si aggiorna mentre scrivi e resta salvata","Fondo pensione più chiaro","Backup con data e ora nel nome"]],['1.7.3','8 novembre 2026',["La barra in basso non si sposta più: né quando tiri la pagina su o giù, né quando si apre la tastiera","App Android: la barra non finisce più sopra la linea delle gesture dopo aver chiuso la tastiera"]],['1.7.2','8 novembre 2026',["Barra in alto, barra in basso e pulsante + restano fermi mentre scorri","Movimenti: pulsante per caricare l'estratto conto della banca o della carta","Pulsante + più trasparente","App Android: sfondo anche sotto la barra delle gesture; widget ridisegnati"]],
  ['1.7.1','8 novembre 2026',["Tema scuro: sfondo quasi nero con una luce oro in alto, senza sfumature colorate","App Android: la barra in alto continua sotto l'ora e le notifiche, e lo sfondo continua sotto la barra delle gesture"]],
  ['1.7.0','8 novembre 2026',["Estratto conto della banca: ritrova i movimenti che hai già registrato, ne corregge la data con quella della banca e aggiunge quelli che mancano","Ti mostra anche le spese che hai in Lydia ma non nell'estratto, e confronta il saldo","I movimenti verificati con la banca hanno una spunta verde"]],
  ['1.6.0','8 novembre 2026',["Estratti conto delle carte: carichi il PDF e l'addebito della carta si divide nelle singole spese, ognuna con la sua categoria","Più carte, ognuna con il suo conto e il tipo di pagamento (saldo a fine mese o revolving)","Se l'addebito non è ancora arrivato, l'estratto resta in attesa e si collega da solo","Le categorie che correggi vengono ricordate per i mesi successivi"]],
