@@ -285,6 +285,12 @@ nav.tabs button:focus-visible{outline-offset:-2px;border-radius:999px}
 nav.tabs{background:rgba(255,255,255,.42);-webkit-backdrop-filter:blur(24px) saturate(170%);backdrop-filter:blur(24px) saturate(170%)}
 :root[data-theme="dark"] nav.tabs{background:rgba(22,26,36,.36);border-color:rgba(255,255,255,.12)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) nav.tabs{background:rgba(22,26,36,.36);border-color:rgba(255,255,255,.12)}}
+/* barra in alto: stessa trasparenza della barra in basso */
+.topbar,.topbar.scrolled{background:rgba(255,255,255,.42);-webkit-backdrop-filter:blur(24px) saturate(170%);backdrop-filter:blur(24px) saturate(170%)}
+:root[data-theme="dark"] .topbar,:root[data-theme="dark"] .topbar.scrolled{background:rgba(22,26,36,.36)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .topbar,:root:not([data-theme="light"]) .topbar.scrolled{background:rgba(22,26,36,.36)}}
+:root[data-theme="dark"] .topbar.scrolled{border-bottom-color:rgba(255,255,255,.12)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .topbar.scrolled{border-bottom-color:rgba(255,255,255,.12)}}
 </style>
 </head>
 <body>
@@ -1109,7 +1115,7 @@ function fixBalSheet(a){const cur=Math.round(accBal(a)*100)/100;openSheet(`<h3>C
 
 /* ---------- privacy, backup, novità ---------- */
 const APP_VERSION='1.5.0';
-const CHANGELOG=[['1.5.0','8 novembre 2026',["Testi più semplici in tutta l'app","Barra in alto sempre leggibile mentre scorri","Pulsanti e selettori più sobri, grafico della Home più pulito","Widget Movimenti su una riga; widget Investimenti più basso","App Android: barre di sistema dello stesso colore dell'app","Barra in basso sospesa, con la sezione attiva evidenziata","Pulsante + rotondo, in vetro dorato lucido","Angoli arrotondati come su Android","Grafico della Home: entrate in verde e spese in rosso, con barre arrotondate","Barra in basso più trasparente, campi selezionati in oro","Cerca (la lente in alto): scrivi cosa vuoi fare, per esempio \"backup\" o \"12 caffè\""]],
+const CHANGELOG=[['1.5.0','8 novembre 2026',["Testi più semplici in tutta l'app","Barra in alto sempre leggibile mentre scorri","Pulsanti e selettori più sobri, grafico della Home più pulito","Widget Movimenti su una riga; widget Investimenti più basso","App Android: barre di sistema dello stesso colore dell'app","Barra in basso sospesa, con la sezione attiva evidenziata","Pulsante + rotondo, in vetro dorato lucido","Angoli arrotondati come su Android","Grafico della Home: entrate in verde e spese in rosso, con barre arrotondate","Barre in alto e in basso più trasparenti, campi selezionati in oro","Cerca (la lente in alto): scrivi cosa vuoi fare, per esempio \"backup\" o \"12 caffè\""]],
  ['1.4.0','8 novembre 2026',["App Android: widget Movimenti, con entrate e uscite del mese e i pulsanti Spesa, Entrata e Giroconto","App Android: widget Investimenti, con valore, guadagno e prezzo di ETF e azioni","App Android: icona di Lydia, anche adattiva e a tema"]],
  ['1.3.0','8 novembre 2026',["Backup su Drive con un tocco, dal menu di condivisione","Backup protetto da password (cifratura AES-256 sul telefono)","Lydia chiede a Chrome di non cancellare mai i suoi dati da sola"]],
  ['1.2.4','8 novembre 2026',["Modalità privacy: l'occhio in alto nasconde o mostra tutti gli importi","Barra in basso: la sezione attiva è in oro, senza riquadro"]],
