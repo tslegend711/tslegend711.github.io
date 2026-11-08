@@ -207,15 +207,15 @@ tr:last-child td{border-bottom:0}
 .actions .btn{flex:1;min-width:120px}
 
 /* navigazione */
-nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;padding:6px var(--gutter-r) calc(8px + env(safe-area-inset-bottom,0px)) var(--gutter-l);border-top:1px solid var(--glass-line)}
-nav.tabs .in{display:flex;max-width:760px;margin:0 auto}
-nav.tabs button{flex:1;border:0;background:none;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 0 4px;font-size:.7rem;font-weight:700;position:relative;min-width:0}
-nav.tabs button .pill{padding:4px 16px;transition:background .2s}
-nav.tabs button[aria-current="page"]{color:var(--gold-ink)}
+nav.tabs{position:fixed;left:var(--gutter-l);right:var(--gutter-r);bottom:calc(10px + env(safe-area-inset-bottom,0px));z-index:30;padding:6px;border:1px solid var(--glass-line);border-radius:999px;background:var(--glass-strong);-webkit-backdrop-filter:blur(22px) saturate(150%);backdrop-filter:blur(22px) saturate(150%);box-shadow:0 10px 30px rgba(10,16,32,.14);max-width:600px;margin:0 auto}
+nav.tabs .in{display:flex;gap:2px}
+nav.tabs button{flex:1;border:0;background:none;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:2px;padding:7px 0 6px;font-size:.7rem;font-weight:700;position:relative;min-width:0;border-radius:999px;transition:background .2s,color .2s}
+nav.tabs button .pill{padding:2px 0}
+nav.tabs button[aria-current="page"]{color:var(--gold-ink);background:var(--gold-soft)}
 nav.tabs button[aria-current="page"] .pill{color:var(--gold)}
 nav.tabs button[aria-current="page"] .pill svg{stroke-width:2.2}
 nav.tabs .dot{position:absolute;top:4px;right:calc(50% - 22px);min-width:16px;height:16px;padding:0 4px;background:var(--neg);color:#fff;font-size:.62rem;display:grid;place-items:center}
-.fab{position:fixed;z-index:29;right:max(16px,calc(50% - 364px),env(safe-area-inset-right,0px));bottom:calc(84px + env(safe-area-inset-bottom,0px));width:58px;height:58px;border:0;background:var(--gold-grad);color:#0B1020;display:grid;place-items:center;box-shadow:0 10px 24px rgba(160,132,41,.38)}
+.fab{position:fixed;z-index:29;right:max(16px,calc(50% - 364px),env(safe-area-inset-right,0px));bottom:calc(92px + env(safe-area-inset-bottom,0px));width:58px;height:58px;border:0;background:var(--gold-grad);color:#0B1020;display:grid;place-items:center;box-shadow:0 10px 24px rgba(160,132,41,.38)}
 .fab svg{width:26px;height:26px;stroke-width:2.4}
 
 /* fogli */
@@ -1026,7 +1026,7 @@ function fixBalSheet(a){const cur=Math.round(accBal(a)*100)/100;openSheet(`<h3>C
 
 /* ---------- privacy, backup, novità ---------- */
 const APP_VERSION='1.5.0';
-const CHANGELOG=[['1.5.0','8 novembre 2026',["Testi più semplici in tutta l'app","Barra in alto sempre leggibile mentre scorri","Pulsanti e selettori più sobri, grafico della Home più pulito","Widget Movimenti su una riga; widget Investimenti più basso","App Android: barre di sistema dello stesso colore dell'app"]],
+const CHANGELOG=[['1.5.0','8 novembre 2026',["Testi più semplici in tutta l'app","Barra in alto sempre leggibile mentre scorri","Pulsanti e selettori più sobri, grafico della Home più pulito","Widget Movimenti su una riga; widget Investimenti più basso","App Android: barre di sistema dello stesso colore dell'app","Barra in basso sospesa, con la sezione attiva evidenziata"]],
  ['1.4.0','8 novembre 2026',["App Android: widget Movimenti, con entrate e uscite del mese e i pulsanti Spesa, Entrata e Giroconto","App Android: widget Investimenti, con valore, guadagno e prezzo di ETF e azioni","App Android: icona di Lydia, anche adattiva e a tema"]],
  ['1.3.0','8 novembre 2026',["Backup su Drive con un tocco, dal menu di condivisione","Backup protetto da password (cifratura AES-256 sul telefono)","Lydia chiede a Chrome di non cancellare mai i suoi dati da sola"]],
  ['1.2.4','8 novembre 2026',["Modalità privacy: l'occhio in alto nasconde o mostra tutti gli importi","Barra in basso: la sezione attiva è in oro, senza riquadro"]],
