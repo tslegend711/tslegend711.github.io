@@ -193,6 +193,8 @@ tr:last-child td{border-bottom:0}
 .step .t{display:block;font-weight:700}.step .s{display:block;font-size:.85rem;color:var(--muted);margin-top:1px}
 .step.done .t{color:var(--muted)}
 .step .ch{margin-left:auto;font-size:1.4rem;color:var(--muted)}.step.next .ch{color:var(--gold-ink)}
+.cats.accs button{display:flex;flex-direction:column;align-items:flex-start;gap:1px;padding:8px 12px}
+.cats.accs button small{font-size:.75rem;font-weight:600;opacity:.75}
 .priv .k{width:28px;height:28px;flex:none;display:grid;place-items:center;background:var(--gold-grad);color:#0B1020;font-weight:800;font-size:.8rem}
 .btn.sm{padding:7px 12px;font-size:.84rem}
 .btn.block{width:100%}
@@ -547,24 +549,28 @@ function allCats(t){const since=iso(new Date(Date.now()-180*864e5));const cnt={}
  return[...new Set([...CATS[t]||[],...S.movs.filter(m=>m.type===t).map(m=>m.cat)])].sort((x,y)=>(cnt[y]||0)-(cnt[x]||0))}
 function accounts(){const own=S.accounts.map(a=>a.name);return[...new Set([...(own.length?own:(S.settings.accounts||[])),...S.movs.flatMap(m=>[m.acct,m.to]).filter(Boolean)])]}
 const QUICK={'nuova-spesa':'out','nuova-entrata':'in','giroconto':'tr'};
-function movForm(m,preset,quick){const isNew=!m;const d=m?{...m}:{id:uid(),type:'out',date:today(),cat:'',desc:'',amount:'',straord:false,acct:mainAcct(),to:S.settings.accounts[1]||'Contanti',...(preset||{})};let type=d.type,cat=d.cat;
+function movForm(m,preset,quick){if(!m&&!S.accounts.length){accountsSheet(()=>movForm(m,preset,quick),'Prima crea almeno un conto: ogni spesa ed entrata parte o arriva su un conto.');return}const isNew=!m;const d=m?{...m}:{id:uid(),type:'out',date:today(),cat:'',desc:'',amount:'',straord:false,acct:mainAcct(),to:S.settings.accounts[1]||'Contanti',...(preset||{})};let type=d.type,cat=d.cat;
  const acc=accounts().length?accounts():[mainAcct()];const opt=v=>acc.map(a=>`<option ${a===v?'selected':''}>${esc(a)}</option>`).join('');
  openSheet(`<h3>${isNew?'Nuovo movimento':'Modifica movimento'}</h3>
  <div class="seg" id="ftype" role="group" aria-label="Tipo">${[['out','Spesa'],['in','Entrata'],['tr','Giroconto'],['inv','Investim.']].map(([k,l])=>`<button data-v="${k}" aria-pressed="${type===k}">${l}</button>`).join('')}</div>
  <label class="f" style="margin-top:14px">Importo (${CS()})<input id="famt" class="amount num" inputmode="decimal" autocomplete="off" placeholder="0,00" value="${numIn(d.amount)}"></label>
+ <div class="f" id="faccw"><span id="facclab">Da quale conto?</span><div class="cats accs" id="faccs" role="radiogroup"></div><input type="hidden" id="facc" value="${esc(d.acct)}"></div>
  <div class="f" id="fcatw">Categoria<input id="fcatnew" type="search" placeholder="Cerca o scrivi una nuova categoria" autocomplete="off" style="margin-bottom:8px"><div class="cats" id="fcats"></div><div class="note" id="fcathint" hidden></div></div>
- <label class="f" id="faccw">Conto<select id="facc">${opt(d.acct)}</select></label>
  <div class="f2" id="ftrw"><label class="f">Da<select id="ffrom">${opt(d.acct)}</select></label><label class="f">A<select id="fto">${opt(d.to||'Contanti')}</select></label></div>
  <div class="f2"><label class="f">Data<input id="fdate" type="date" value="${d.date}"></label><label class="f">Descrizione<input id="fdesc" value="${esc(d.desc)}" placeholder="Facoltativa"></label></div>
  <label class="check" id="fstraordw"><input type="checkbox" id="fstraord" ${d.straord?'checked':''}> Spesa straordinaria, da escludere dalle medie (es. maxirata)</label>
  <div class="actions">${isNew?'<button class="btn ghost" id="fagain">Salva e aggiungi altro</button>':'<button class="btn danger" id="fdel">Elimina</button>'}<button class="btn" id="fsave">Salva</button></div>`);
- const drawCats=()=>{const tr=type==='tr';$('#fcatw').hidden=tr;$('#ftrw').hidden=!tr;$('#faccw').hidden=tr||acc.length<2;$('#fstraordw').hidden=type!=='out';if(tr)return;
+ let allCatsOpen=false;
+ const drawAcc=()=>{const cur=$('#facc').value;const list=[...new Set([...acc,...(cur&&!acc.includes(cur)?[cur]:[])])];$('#faccs').innerHTML=list.map(n=>{const a=S.accounts.find(x=>x.name===n);return `<button type="button" role="radio" data-acc="${esc(n)}" aria-pressed="${n===cur}" aria-checked="${n===cur}">${esc(n)}${a?`<small class="num">${eur0(accBal(a))}</small>`:''}</button>`}).join('')};
+ const drawCats=()=>{const tr=type==='tr';$('#fcatw').hidden=tr;$('#ftrw').hidden=!tr;$('#faccw').hidden=tr;$('#facclab').textContent=type==='in'?'Su quale conto entra?':type==='inv'?'Da quale conto parte l\'investimento?':'Da quale conto scalo l\'importo?';drawAcc();$('#fstraordw').hidden=type!=='out';if(tr)return;
   let cs=allCats(type);if(cat&&!cs.includes(cat))cs.unshift(cat);const q=($('#fcatnew').value||'').trim().toLowerCase();const nq=x=>x.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-  if(q)cs=cs.filter(c=>nq(c).includes(nq(q)));$('#fcats').innerHTML=cs.map(c=>`<button type="button" data-c="${esc(c)}" aria-pressed="${c===cat}">${esc(c)}</button>`).join('');
+  if(q)cs=cs.filter(c=>nq(c).includes(nq(q)));const more=!q&&!allCatsOpen&&cs.length>12;let vis=more?cs.slice(0,12):cs;if(more&&cat&&!vis.includes(cat))vis=[cat,...vis.slice(0,11)];$('#fcats').innerHTML=vis.map(c=>`<button type="button" data-c="${esc(c)}" aria-pressed="${c===cat}">${esc(c)}</button>`).join('')+(more?`<button type="button" id="fcatmore" style="border-style:dashed">Altre ${cs.length-vis.length}</button>`:'');
   const exact=q&&allCats(type).some(c=>nq(c)===nq(q));const h=$('#fcathint');h.hidden=!q||exact;h.textContent=q&&!exact?(cs.length?'Tocca una categoria, oppure salva per crearne una nuova: ':'Nessuna categoria trovata: verrà creata ')+'«'+$('#fcatnew').value.trim()+'»':''};
  $('#fcatnew').oninput=()=>{cat='';drawCats()};$('#fcatnew').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();const f=$('#fcats [data-c]');if(f){cat=f.dataset.c;$('#fcatnew').value='';drawCats()}}};
  drawCats();
  if(isNew)setTimeout(()=>{try{$('#famt').focus()}catch(e){}},quick?250:60);
+ $('#faccs').onclick=e=>{const b=e.target.closest('[data-acc]');if(!b)return;$('#facc').value=b.dataset.acc;drawAcc()};
+ $('#fcats').addEventListener('click',e=>{if(e.target.closest('#fcatmore')){allCatsOpen=true;drawCats()}});
  $('#fcats').onclick=e=>{const b=e.target.closest('[data-c]');if(!b)return;cat=b.dataset.c;$('#fcatnew').value='';drawCats()};
  $('#ftype').onclick=e=>{const b=e.target.closest('[data-v]');if(!b)return;type=b.dataset.v;$$('#ftype button').forEach(x=>x.setAttribute('aria-pressed',x===b));if(type!=='tr'&&!allCats(type).includes(cat))cat='';drawCats()};
  const doSave=again=>{const amt=parseNum($('#famt').value);if(!(amt>0)){toast('Inserisci un importo maggiore di zero');return}const date=$('#fdate').value;if(!date){toast('Scegli una data');return}
@@ -1012,7 +1018,7 @@ function fixBalSheet(a){const cur=Math.round(accBal(a)*100)/100;openSheet(`<h3>C
 
 /* ---------- privacy, backup, novità ---------- */
 const APP_VERSION='1.2.2';
-const CHANGELOG=[['1.2.2','8 novembre 2026',["Busta paga: scegli il conto e la data dell'accredito, lo stipendio e i rimborsi entrano come movimenti","Se non hai ancora un conto, Lydia te lo fa creare prima di leggere la busta paga","Mentre legge il PDF compare una finestra di attesa; se qualcosa va storto te lo dice","Un movimento con data precedente all'ultimo saldo verificato non altera il saldo","Nuovo movimento: Spesa in rosso, Entrata in verde, Giroconto in oro","Categorie: campo di ricerca sopra l'elenco"]],
+const CHANGELOG=[['1.2.2','8 novembre 2026',["Busta paga: scegli il conto e la data dell'accredito, lo stipendio e i rimborsi entrano come movimenti","Se non hai ancora un conto, Lydia te lo fa creare prima di leggere la busta paga","Mentre legge il PDF compare una finestra di attesa; se qualcosa va storto te lo dice","Un movimento con data precedente all'ultimo saldo verificato non altera il saldo","Nuovo movimento: Spesa in rosso, Entrata in verde, Giroconto in oro","Categorie: campo di ricerca sopra l'elenco","Ogni movimento chiede da quale conto parte o su quale conto arriva, con il saldo di ciascuno","Categorie: le 12 più usate, le altre con un tocco"]],
  ['1.2.1','8 novembre 2026',["La tastiera non si chiude più mentre scrivi","Riserva di emergenza: puoi scrivere tu la cifra","Gli aggiornamenti arrivano subito, senza aspettare la cache","Nuova schermata iniziale: tre passi numerati e un solo pulsante per importare"]],
  ['1.2.0','8 novembre 2026',["Nuova sezione Conti: saldo di ogni conto, entrate e uscite del mese, andamento degli ultimi sei mesi","Buste paga lette in automatico dal PDF, direttamente sul telefono; resta l'inserimento a mano","Calcolo della riserva di emergenza da stipendio, spese e tipo di contratto","Import dei backup .zip senza connessione, scegliendo il file da qualsiasi cartella","Promemoria del backup e schermata sulla privacy","Grafici disegnati dall'app: nessuna libreria o font esterno, tutto funziona offline","Impostazioni riorganizzate, con la scelta della valuta","Dettagli color oro come il logo"]],
  ['1.1.0','7 novembre 2026',["Più conti (conto corrente, contanti, carte, depositi) con saldi automatici","Giroconti tra i conti","Scorciatoie dall'icona: spesa, entrata, giroconto","Nuovo nome e nuova icona: Lydia"]],
