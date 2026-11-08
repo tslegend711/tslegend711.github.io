@@ -308,8 +308,8 @@ input,textarea,select,[contenteditable]{-webkit-user-select:text;user-select:tex
 :root[data-theme="dark"] .bgfx{background:radial-gradient(120% 60% at 50% -10%,rgba(212,175,55,.16),rgba(212,175,55,0) 60%),#0C0E13}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .bgfx i{display:none}:root:not([data-theme="light"]) .bgfx{background:radial-gradient(120% 60% at 50% -10%,rgba(212,175,55,.16),rgba(212,175,55,0) 60%),#0C0E13}}
 /* pulsante +: oro pieno ma ancora in vetro (leggermente trasparente, riflesso in alto) */
-.fab,:root[data-theme="dark"] .fab{background:radial-gradient(120% 95% at 30% 12%,rgba(255,236,165,.92),rgba(218,180,62,.86) 45%,rgba(160,124,30,.9) 100%);border-color:rgba(255,240,190,.75);box-shadow:0 10px 26px rgba(160,124,30,.40),inset 0 1px 1px rgba(255,255,255,.9),inset 0 -10px 16px rgba(110,80,10,.30)}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .fab{background:radial-gradient(120% 95% at 30% 12%,rgba(255,236,165,.92),rgba(218,180,62,.86) 45%,rgba(160,124,30,.9) 100%);border-color:rgba(255,240,190,.6)}}
+.fab,:root[data-theme="dark"] .fab{background:radial-gradient(120% 95% at 30% 12%,rgba(255,236,165,.72),rgba(218,180,62,.52) 45%,rgba(160,124,30,.66) 100%);border-color:rgba(255,240,190,.75);box-shadow:0 10px 26px rgba(160,124,30,.40),inset 0 1px 1px rgba(255,255,255,.9),inset 0 -10px 16px rgba(110,80,10,.30)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .fab{background:radial-gradient(120% 95% at 30% 12%,rgba(255,236,165,.72),rgba(218,180,62,.52) 45%,rgba(160,124,30,.66) 100%);border-color:rgba(255,240,190,.6)}}
 .fab::before{background:linear-gradient(rgba(255,255,255,.62),rgba(255,255,255,0))}
 .fab svg,:root[data-theme="dark"] .fab svg{stroke:#2A1F05}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .fab svg{stroke:#2A1F05}}
@@ -318,6 +318,9 @@ input,textarea,select,[contenteditable]{-webkit-user-select:text;user-select:tex
 :root.native main{padding-bottom:calc(120px + var(--sab,0px))}
 :root.native .sheet{padding-bottom:calc(24px + var(--sab,0px))}
 :root.native{padding-bottom:0!important}
+.fab{-webkit-backdrop-filter:blur(4px) saturate(140%);backdrop-filter:blur(4px) saturate(140%)}
+:root[data-theme="dark"] .fab svg{stroke:#FFF3CC}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .fab svg{stroke:#FFF3CC}}
 </style>
 </head>
 <body>
