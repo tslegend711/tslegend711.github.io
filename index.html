@@ -58,7 +58,8 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .glass{background:var(--glass);-webkit-backdrop-filter:blur(22px) saturate(150%);backdrop-filter:blur(22px) saturate(150%);border:1px solid var(--glass-line);box-shadow:inset 0 1px 0 var(--glass-hi)}
 button,input,select,textarea{font:inherit;color:inherit}
 button{cursor:pointer}
-:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+input:focus-visible,select:focus-visible,textarea:focus-visible{outline:none;border-color:var(--gold)!important;box-shadow:0 0 0 3px var(--gold-soft)}
 
 /* barra in alto */
 .topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;padding-left:var(--gutter-l);padding-right:var(--gutter-r);background:var(--glass);-webkit-backdrop-filter:blur(22px) saturate(150%);backdrop-filter:blur(22px) saturate(150%);border-bottom:1px solid transparent;transition:border-color .2s,background .2s}
@@ -279,6 +280,11 @@ html{-webkit-tap-highlight-color:transparent}
 button:focus:not(:focus-visible),a:focus:not(:focus-visible),[tabindex]:focus:not(:focus-visible){outline:none}
 button:focus-visible,a:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 nav.tabs button:focus-visible{outline-offset:-2px;border-radius:999px}
+.row.cmd{width:100%;text-align:left;padding:10px 0}
+.row.cmd .ico{font-weight:800;font-size:1.05rem}
+nav.tabs{background:rgba(255,255,255,.42);-webkit-backdrop-filter:blur(24px) saturate(170%);backdrop-filter:blur(24px) saturate(170%)}
+:root[data-theme="dark"] nav.tabs{background:rgba(22,26,36,.36);border-color:rgba(255,255,255,.12)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) nav.tabs{background:rgba(22,26,36,.36);border-color:rgba(255,255,255,.12)}}
 </style>
 </head>
 <body>
@@ -287,7 +293,7 @@ nav.tabs button:focus-visible{outline-offset:-2px;border-radius:999px}
   <div class="brand" id="brand" aria-label="Lydia"></div><div class="small" id="smalltitle">Panoramica</div>
   <button class="iconbtn" id="eyebtn" aria-label="Nascondi gli importi" aria-pressed="false"><svg class="i" viewBox="0 0 24 24" id="eyeico"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
   <button class="iconbtn" id="tipsbtn" aria-label="Consigli"><svg class="i" viewBox="0 0 24 24"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.7.7 1 1.5 1 2.5h6c0-1 .3-1.8 1-2.5A6 6 0 0 0 12 3z"/></svg><span class="dot" id="tipdot" hidden></span></button>
-  <button class="iconbtn" id="themebtn" aria-label="Cambia tema"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"/></svg></button>
+  <button class="iconbtn" id="searchbtn" aria-label="Cerca: cosa vuoi fare?"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg></button>
   <button class="iconbtn" id="gear" aria-label="Impostazioni e backup"><svg class="i" viewBox="0 0 24 24"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/></svg></button>
 </div></header>
 <main><div class="wrap" id="main"></div></main>
@@ -991,6 +997,50 @@ function budgetSheet(){const lf=completeMonths();const ks=[0,1,2,3,4,5].map(i=>s
  openSheet(`<h3>Budget mensili</h3><p class="note" style="margin-top:-6px">Lascia vuoto se non ti serve. A fianco vedi quanto spendi di solito.</p><div style="margin-top:12px">${cats.map((c,i)=>`<label class="f">${esc(c)} <span style="font-weight:500">· media ${eur0(avg[c])}</span><input data-bc="${esc(c)}" inputmode="decimal" value="${numIn(S.settings.budgets[c]||'')}"></label>`).join('')}</div><div class="actions"><button class="btn" id="bsv">Salva</button></div>`);
  $('#bsv').onclick=()=>{const b={};$$('[data-bc]').forEach(i=>{const v=parseNum(i.value);if(v>0)b[i.dataset.bc]=v});S.settings.budgets=b;save();closeSheet();render();toast('Budget salvati')}}
 
+/* ---------- cerca: cosa vuoi fare? ---------- */
+const nrm=x=>String(x||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+function cmdList(){const H=()=>S.settings.hideAmounts;return[
+ ['Nuova spesa','spesa uscita pagare comprato',()=>movForm(null,{type:'out'})],
+ ['Nuova entrata','entrata incasso ricevuto soldi',()=>movForm(null,{type:'in'})],
+ ['Giroconto','giroconto trasferimento sposta prelievo bancomat',()=>movForm(null,{type:'tr'})],
+ ['Nuovo investimento','investimento etf pac comprare quote',()=>movForm(null,{type:'inv'})],
+ ['Carica busta paga (PDF)','busta paga stipendio pdf cedolino',()=>pickFiles('.pdf,application/pdf',importPayslips,true)],
+ ['Busta paga a mano','busta paga stipendio manuale',()=>payslipForm()],
+ ['Fai un backup','backup salva drive esporta copia',()=>doBackup()],
+ ['Importa un file','importa zip csv json backup ripristina',()=>pickFiles('',importAny,true)],
+ ['I tuoi conti','conti conto corrente carta contanti saldo',()=>go('conti')],
+ ['Aggiungi o modifica conti','nuovo conto aggiungi modifica',()=>accountsSheet()],
+ ['Riserva di emergenza','riserva emergenza fondo sicurezza',()=>reserveSheet()],
+ ['Aggiungi ETF o azione','etf azione titolo investimento aggiungi',()=>etfForm()],
+ ['Fondo pensione','fondo pensione cometa tfr',()=>cometaForm()],
+ ['Movimenti','movimenti lista storico',()=>go('movimenti')],
+ ['Stipendi','stipendi buste paga netto',()=>go('stipendi')],
+ ['Patrimonio','patrimonio etf investimenti totale',()=>go('patrimonio')],
+ ['Consigli','consigli cosa fare suggerimenti',()=>go('consigli')],
+ [H()?'Mostra gli importi':'Nascondi gli importi','privacy nascondi mostra importi occhio',()=>$('#eyebtn').click()],
+ ['Tema chiaro o scuro','tema scuro chiaro notte colori',()=>themeSheet()],
+ ['Impostazioni','impostazioni valuta nome opzioni',()=>settingsSheet()],
+ ['Quotazioni automatiche','quotazioni prezzi tempo reale chiave',()=>quoteSheet()],
+ ['Privacy e sicurezza','privacy sicurezza dati',()=>privacySheet(false)],
+ ['Novità','novita versione aggiornamenti changelog',()=>changelogSheet()],
+ ['Rivedi il tour','tour guida aiuto',()=>tourSheet()]]}
+function searchSheet(){openSheet(`<input id="cmdq" class="search" type="search" placeholder="Cosa vuoi fare?" autocomplete="off" aria-label="Cosa vuoi fare?" style="margin:4px 0 10px"><div id="cmdr"></div>`);
+ const A=cmdList();const draw=()=>{const raw=$('#cmdq').value.trim(),q=nrm(raw);let h='';const items=[];
+  // "12 caffè" o "caffè 12,50": proposta rapida
+  const m=raw.match(/^(\d+(?:[.,]\d{1,2})?)\s*(?:€|eur|euro)?\s+(.+)$/i)||raw.match(/^(.+?)\s+(\d+(?:[.,]\d{1,2})?)\s*(?:€|eur|euro)?$/i);
+  if(m){const num=/^\d/.test(m[1])?m[1]:m[2],txt=(/^\d/.test(m[1])?m[2]:m[1]).trim();const v=parseNum(num);if(v>0){const cat=allCats('out').find(c=>nrm(txt).includes(nrm(c))||nrm(c).includes(nrm(txt)));
+   items.push([`Spesa di ${eur(v)}`,`«${txt}»${cat?' · '+cat:''}`,()=>movForm(null,{type:'out',amount:v,desc:txt,cat:cat||''}),'out']);
+   const ci=allCats('in').find(c=>nrm(txt).includes(nrm(c))||nrm(c).includes(nrm(txt)));items.push([`Entrata di ${eur(v)}`,`«${txt}»${ci?' · '+ci:''}`,()=>movForm(null,{type:'in',amount:v,desc:txt,cat:ci||''}),'in'])}}
+  const acts=q?A.filter(([l,k])=>nrm(l+' '+k).split(/\s+/).some(w=>w.startsWith(q))||nrm(l+' '+k).includes(q)):A.slice(0,8);
+  acts.slice(0,q?8:8).forEach(([l,,fn])=>items.push([l,'',fn,'act']));
+  if(q.length>=2){const mv=S.movs.filter(x=>nrm(x.desc+' '+x.cat).includes(q)).sort((a,b)=>a.date<b.date?1:-1).slice(0,6);
+   mv.forEach(x=>items.push([x.desc||x.cat,`${x.cat} · ${fmtDate(x.date)} · ${x.type==='in'?'+':x.type==='out'?'−':''}${eur(x.amount)}`,()=>movForm(x),'mov']));
+   const cats=[...new Set(S.movs.map(x=>x.cat))].filter(c=>nrm(c).includes(q)).slice(0,3);cats.forEach(c=>items.push([`Tutti i movimenti di ${c}`,'',()=>{mf={q:'',t:'all',m:'all',c,a:'all'};go('movimenti')},'cat']))}
+  const ico={out:'−',in:'+',act:'›',mov:'•',cat:'#'};
+  h=items.length?items.map((it,i)=>`<button class="row cmd" data-i="${i}"><span class="ico" style="background:${it[3]==='out'?'var(--exp)':it[3]==='in'?'var(--inc)':'var(--glass-line)'};color:${it[3]==='out'||it[3]==='in'?'#fff':'var(--ink)'}">${ico[it[3]]}</span><div class="main"><div class="t">${esc(it[0])}</div>${it[1]?`<div class="s">${esc(it[1])}</div>`:''}</div></button>`).join(''):`<p class="note">Nessun risultato. Prova con "spesa", "backup" o un importo, per esempio "12 caffè".</p>`;
+  $('#cmdr').innerHTML=(!q?'<div class="eyebrow" style="margin:2px 0 6px">Azioni rapide</div>':'')+h;
+  $$('#cmdr [data-i]').forEach(b=>b.onclick=()=>{const it=items[+b.dataset.i];closeSheet();setTimeout(it[2],60)})};
+ $('#cmdq').oninput=draw;$('#cmdq').onkeydown=e=>{if(e.key==='Enter'){const f=$('#cmdr [data-i]');if(f)f.click()}};draw();setTimeout(()=>{try{$('#cmdq').focus()}catch(e){}},80)}
 /* ---------- logo ---------- */
 function LOGO(n){const id='lg'+n+Math.random().toString(36).slice(2,6);let r='';for(let i=0;i<16;i++)r+=`<line x1="100" y1="60" x2="100" y2="${[22,38,30,44][i%4]}" transform="rotate(${i*22.5} 100 100)"/>`;
  return `<svg width="${n}" height="${n}" viewBox="0 0 200 200" aria-hidden="true"><defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ecdba5"/><stop offset=".32" stop-color="#D4AF37"/><stop offset=".58" stop-color="#a08429"/><stop offset=".8" stop-color="#D4AF37"/><stop offset="1" stop-color="#e7d391"/></linearGradient></defs><rect width="200" height="200" fill="url(#${id})"/><g stroke="#0B1020" stroke-width="9" stroke-opacity=".9">${r}</g><circle cx="100" cy="100" r="31" fill="#0B1020" fill-opacity=".92"/><path d="M93 86V113H111" fill="none" stroke="url(#${id})" stroke-width="8" stroke-linecap="square"/></svg>`}
@@ -1059,7 +1109,7 @@ function fixBalSheet(a){const cur=Math.round(accBal(a)*100)/100;openSheet(`<h3>C
 
 /* ---------- privacy, backup, novità ---------- */
 const APP_VERSION='1.5.0';
-const CHANGELOG=[['1.5.0','8 novembre 2026',["Testi più semplici in tutta l'app","Barra in alto sempre leggibile mentre scorri","Pulsanti e selettori più sobri, grafico della Home più pulito","Widget Movimenti su una riga; widget Investimenti più basso","App Android: barre di sistema dello stesso colore dell'app","Barra in basso sospesa, con la sezione attiva evidenziata","Pulsante + rotondo, in vetro dorato lucido","Angoli arrotondati come su Android","Grafico della Home: entrate in verde e spese in rosso, con barre arrotondate"]],
+const CHANGELOG=[['1.5.0','8 novembre 2026',["Testi più semplici in tutta l'app","Barra in alto sempre leggibile mentre scorri","Pulsanti e selettori più sobri, grafico della Home più pulito","Widget Movimenti su una riga; widget Investimenti più basso","App Android: barre di sistema dello stesso colore dell'app","Barra in basso sospesa, con la sezione attiva evidenziata","Pulsante + rotondo, in vetro dorato lucido","Angoli arrotondati come su Android","Grafico della Home: entrate in verde e spese in rosso, con barre arrotondate","Barra in basso più trasparente, campi selezionati in oro","Cerca (la lente in alto): scrivi cosa vuoi fare, per esempio \"backup\" o \"12 caffè\""]],
  ['1.4.0','8 novembre 2026',["App Android: widget Movimenti, con entrate e uscite del mese e i pulsanti Spesa, Entrata e Giroconto","App Android: widget Investimenti, con valore, guadagno e prezzo di ETF e azioni","App Android: icona di Lydia, anche adattiva e a tema"]],
  ['1.3.0','8 novembre 2026',["Backup su Drive con un tocco, dal menu di condivisione","Backup protetto da password (cifratura AES-256 sul telefono)","Lydia chiede a Chrome di non cancellare mai i suoi dati da sola"]],
  ['1.2.4','8 novembre 2026',["Modalità privacy: l'occhio in alto nasconde o mostra tutti gli importi","Barra in basso: la sezione attiva è in oro, senza riquadro"]],
@@ -1334,7 +1384,7 @@ function settingsSheet(){const st=S.settings;const sec=(t,h)=>`<div style="margi
 
 /* ---------- avvio ---------- */
 $$('nav.tabs button').forEach(b=>b.onclick=()=>go(b.dataset.tab));
-$('#gear').onclick=settingsSheet;$('#themebtn').onclick=themeSheet;$('#fab').onclick=()=>movForm();
+$('#gear').onclick=settingsSheet;$('#searchbtn').onclick=()=>searchSheet();$('#fab').onclick=()=>movForm();
 $('#ov').onclick=e=>{if(e.target.id==='ov')closeSheet()};
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#ov').classList.contains('open'))closeSheet()});
 function quickFromHash(h){if(!QUICK[h])return false;try{history.replaceState(null,'','#home')}catch(e){}tab='home';render();movForm(null,{type:QUICK[h]},true);return true}
