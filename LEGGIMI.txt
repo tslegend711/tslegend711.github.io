@@ -2,7 +2,8 @@ LYDIA – web app installabile e base per l'APK Android
 =====================================================
 
 L'app parte VUOTA. Al primo avvio puoi:
-- importare il backup di Ivy Wallet (il file .zip che esporti da Ivy),
+- aggiungere i tuoi conti (conto corrente, contanti, carte, depositi) con il saldo attuale,
+- importare il backup (.zip/.json) esportato da un'altra app di spese compatibile,
 - importare un CSV (data;tipo;categoria;descrizione;importo),
 - ripristinare un backup di questa app (.json).
 Da Impostazioni puoi sempre esportare: "Scarica backup completo" (.json, tutto) ed "Esporta movimenti CSV".

@@ -229,7 +229,17 @@ const EXTRA_CATS=['Tredicesima','Extra stipendio','Bonus','Premio','Quattordices
 const APPNAME='Lydia';
 const hello=()=>'Ciao'+(S.settings.name?' '+S.settings.name:'');
 const fundName=()=>S.cometa&&S.cometa.name?S.cometa.name:'Fondo pensione';
-const mainAcct=()=>(S.settings.accounts||[])[0]||'Conto corrente';
+const mainAcct=()=>(S.accounts&&S.accounts[0]&&S.accounts[0].name)||(S.settings.accounts||[])[0]||'Conto corrente';
+const ACC_TYPES=[['conto','Conto corrente'],['risparmio','Conto deposito'],['contanti','Contanti'],['carta','Carta di credito'],['altro','Altro']];
+const accTypeLabel=t=>(ACC_TYPES.find(x=>x[0]===t)||ACC_TYPES[4])[1];
+function accGuess(n){return /contant|cash|portafogl/i.test(n)?'contanti':/carta|card|amex|visa|master/i.test(n)?'carta':/deposit|risparm|saving/i.test(n)?'risparmio':'conto'}
+function movDelta(m,name){const a=+m.amount||0;let d=0;if(m.acct===name)d+=m.type==='in'?a:-a;if(m.type==='tr'&&m.to===name)d+=a;return d}
+function accFlow(name){return sum(S.movs,m=>movDelta(m,name))}
+function accBal(a){return(+a.adj||0)+accFlow(a.name)}
+function setAccBal(a,v){a.adj=Math.round((v-accFlow(a.name))*100)/100;a.setOn=today();delete a.auto}
+function migrateAccounts(){if(S.accounts.length||!S.movs.length)return;const used=new Set(S.movs.flatMap(m=>[m.acct,m.to]).filter(Boolean));
+ const names=[...new Set([...(S.settings.accounts||[]),...used])].filter(n=>used.has(n));if(!names.length)return;
+ S.accounts=names.map(n=>({id:uid(),name:n,type:accGuess(n),adj:0,auto:true}));const c=lastOf(S.cash.hist);if(c){S.accounts[0].adj=Math.round((c.v-accFlow(S.accounts[0].name))*100)/100}}
 const COLORS=['--c1','--c2','--c3','--c4','--c5','--c6','--c7','--c8'];
 
 const $=s=>document.querySelector(s), $$=s=>document.querySelectorAll(s);
@@ -271,10 +281,10 @@ function parseDate(s){s=String(s??'').trim().replace(/^"|"$/g,'');let m,y,mo,d;
  if(mo<1||mo>12||d<1||d>31)return null;return `${y}-${pad(mo)}-${pad(d)}`}
 
 /* ---------- stato ---------- */
-const DEF_SET={theme:'auto',reserve:15000,acc:[],minOrder:2500,feePct:.15,feeMin:8,feeMax:20,satMax:15,cometaAnnuo:2390,budgets:{},projContrib:6000,projYears:10,accounts:['Conto corrente','Contanti','Carta di credito'],name:'',cardCat:'Carta di credito',ivyMap:{},avKey:'',tdKey:'',provider:'none',refreshMin:5};
+const DEF_SET={theme:'auto',reserve:15000,acc:[],minOrder:2500,feePct:.15,feeMin:8,feeMax:20,satMax:15,cometaAnnuo:2390,budgets:{},projContrib:6000,projYears:10,accounts:['Conto corrente','Contanti','Carta di credito'],name:'',cardCat:'Carta di credito',extMap:{},avKey:'',tdKey:'',provider:'none',refreshMin:5};
 function norm(d){d=d&&typeof d==='object'?d:{};const arr=x=>Array.isArray(x)?x:[];
  return{movs:arr(d.movs),payslips:arr(d.payslips),etfs:arr(d.etfs).map(e=>({...e,ops:arr(e.ops),hist:arr(e.hist)})),
-  cometa:{hist:[],...(d.cometa||{}),hist:arr(d.cometa&&d.cometa.hist)},cash:{hist:arr(d.cash&&d.cash.hist)},loans:arr(d.loans),ivySeen:arr(d.ivySeen),rev:+d.rev||0,
+  cometa:{hist:[],...(d.cometa||{}),hist:arr(d.cometa&&d.cometa.hist)},cash:{hist:arr(d.cash&&d.cash.hist)},loans:arr(d.loans),accounts:arr(d.accounts),extSeen:arr(d.extSeen||d.ivySeen),rev:+d.rev||0,
   settings:{...DEF_SET,...(d.settings||{})}}}
 let storageOk=true;
 function load(){try{const r=localStorage.getItem(KEY);if(r)return norm(JSON.parse(r))}catch(e){storageOk=false}return null}
@@ -316,8 +326,9 @@ const lastOf=h=>{const s=(h||[]).slice().sort((a,b)=>a.d<b.d?-1:1);return s.leng
 function loanCalc(l){const P=+l.principal||0,n=Math.max(1,Math.round(+l.months||1)),r=(+l.tan||0)/1200;const rata=r?P*r/(1-Math.pow(1+r,-n)):P/n;const st=pd(l.start);const t=today();let res=P,paid=0,intLeft=0;const rows=[];
  for(let i=0;i<n;i++){const d=iso(addMonths(st,i));const it=res*r;const cap=rata-it;res=Math.max(0,res-cap);const isPaid=d<=t;if(isPaid)paid++;else intLeft+=it;rows.push({n:i+1,d,it,cap,res,paid:isPaid})}
  return{rata,rows,paid,n,residuo:paid?rows[paid-1].res:P,intTot:rata*n-P,intLeft,next:rows[paid]||null}}
-function wealth(){const cash=lastOf(S.cash.hist),com=lastOf(S.cometa.hist);const etf=sum(etfRows(),x=>x.v);const debt=sum(S.loans,l=>loanCalc(l).residuo);
- return{cash:cash?cash.v:0,cashD:cash&&cash.d,etf,cometa:com?com.v:0,cometaD:com&&com.d,debt,tot:(cash?cash.v:0)+etf+(com?com.v:0)-debt}}
+function wealth(){const com=lastOf(S.cometa.hist);const etf=sum(etfRows(),x=>x.v);const debt=sum(S.loans,l=>loanCalc(l).residuo);let cash=0,cashD=null;
+ if(S.accounts.length){cash=sum(S.accounts,accBal);cashD=today()}else{const c=lastOf(S.cash.hist);if(c){cash=c.v;cashD=c.d}}
+ return{cash,cashD,etf,cometa:com?com.v:0,cometaD:com&&com.d,debt,tot:cash+etf+(com?com.v:0)-debt}}
 function fee(amount){const s=S.settings;return Math.min(s.feeMax,Math.max(s.feeMin,amount*s.feePct/100))}
 
 /* ---------- quotazioni automatiche ---------- */
@@ -361,7 +372,7 @@ function closeSheet(){$('#ov').classList.remove('open');document.body.style.over
 function ask(title,text,ok,danger){return new Promise(res=>{openSheet(`<h3>${esc(title)}</h3>${text?`<p class="note">${esc(text)}</p>`:''}<div class="actions"><button class="btn ghost" id="an">Annulla</button><button class="btn ${danger?'dangerfill':''}" id="ay">${esc(ok)}</button></div>`);$('#an').onclick=()=>{closeSheet();res(false)};$('#ay').onclick=()=>{closeSheet();res(true)}})}
 const TABS=['home','movimenti','stipendi','patrimonio','consigli'];
 const startHash=location.hash.slice(1);let tab=TABS.includes(startHash)?startHash:'home';
-let per={kind:'12m',off:0},mf={q:'',t:'all',m:'all',c:'all'};
+let per={kind:'12m',off:0},mf={q:'',t:'all',m:'all',c:'all',a:'all'};
 function go(t){tab=t;try{history.replaceState(null,'','#'+t)}catch(e){location.hash=t}window.scrollTo(0,0);render()}
 function bigTitle(t,sub){return `<div class="bigtitle"><h1>${esc(t)}</h1>${sub?`<p>${sub}</p>`:''}</div>`}
 function render(){
@@ -380,10 +391,11 @@ function periodRange(){const k=per.kind;
  const end=completeMonths(),ms=[];for(let i=11;i>=0;i--)ms.push(shiftK(end,-i));
  return{a:ms[0]+'-01',b:end+'-31',label:`${shortK(ms[0])} – ${shortK(end)}`,prev:()=>[shiftK(ms[0],-12)+'-01',shiftK(end,-12)+'-31'],months:ms}}
 function renderHome(){const main=$('#main');
- if(!S.movs.length&&!S.etfs.length){main.innerHTML=bigTitle(hello(),'Benvenuto. I dati restano solo su questo dispositivo: nessun account, nessun server.')+`<div class="glass card"><h2>Da dove vuoi partire?</h2><p class="sub">Puoi cambiare tutto più tardi dalle impostazioni.</p><label class="f" style="margin-top:12px">Come ti chiami? (facoltativo)<input id="obname" value="${esc(S.settings.name)}" autocomplete="given-name"></label><div class="actions" style="flex-direction:column"><button class="btn" id="obivy">Importa backup di Ivy Wallet (.zip)</button><button class="btn ghost" id="obcsv">Importa movimenti da CSV</button><button class="btn ghost" id="obrest">Ripristina un backup di questa app</button><button class="btn ghost" id="goadd">Inizia da zero</button></div><input type="file" id="obfile" hidden></div>`;
+ if(!S.movs.length&&!S.etfs.length){main.innerHTML=bigTitle(hello(),'Benvenuto. I dati restano solo su questo dispositivo: nessun account, nessun server.')+`<div class="glass card"><h2>Da dove vuoi partire?</h2><p class="sub">Puoi cambiare tutto più tardi dalle impostazioni.</p><label class="f" style="margin-top:12px">Come ti chiami? (facoltativo)<input id="obname" value="${esc(S.settings.name)}" autocomplete="given-name"></label><div class="actions" style="flex-direction:column"><button class="btn" id="obacc">${S.accounts.length?'I tuoi conti: '+esc(S.accounts.map(a=>a.name).join(', ')):'1. Aggiungi i tuoi conti'}</button><button class="btn ghost" id="goadd">${S.accounts.length?'Registra il primo movimento':'2. Registra il primo movimento'}</button><button class="btn ghost" id="obext">Importa da un'altra app (backup .zip)</button><button class="btn ghost" id="obcsv">Importa movimenti da CSV</button><button class="btn ghost" id="obrest">Ripristina un backup di questa app</button></div><input type="file" id="obfile" hidden></div>`;
+ $('#obacc').onclick=()=>accountsSheet();
  $('#obname').onchange=e=>{S.settings.name=e.target.value.trim();save()};
  const pick=(acc,fn)=>{const f=$('#obfile');f.accept=acc;f.onchange=async ev=>{const file=ev.target.files[0];ev.target.value='';if(file)fn(file)};f.click()};
- $('#obivy').onclick=()=>pick('.zip,.json,application/zip',importIvy);$('#obcsv').onclick=()=>pick('.csv,.txt,text/csv',importCSVFile);$('#obrest').onclick=()=>pick('.json,application/json',restoreFile);$('#goadd').onclick=()=>movForm();return}
+ $('#obext').onclick=()=>pick('.zip,.json,application/zip',importExt);$('#obcsv').onclick=()=>pick('.csv,.txt,text/csv',importCSVFile);$('#obrest').onclick=()=>pick('.json,application/json',restoreFile);$('#goadd').onclick=()=>S.accounts.length?movForm():accountsSheet(()=>movForm());return}
  const R=periodRange(),cur=agg(inRange(R.a,R.b)),[pa,pb]=R.prev(),prv=agg(inRange(pa,pb));const W=wealth();const nm=Math.max(1,R.months.filter(k=>byMonth(k).length).length);
  const dl=(v,p,goodUp)=>{if(!p)return '<span class="d">Nessun dato nel periodo prima</span>';const d=(v-p)/Math.abs(p);return `<span class="d ${(goodUp?d>=0:d<=0)?'pos':'neg'}">${sPct(d)} sul periodo prima</span>`};
  const tips=insights().filter(x=>x.lv!=='info').slice(0,2);
@@ -400,6 +412,7 @@ function renderHome(){const main=$('#main');
   <div class="glass tile"><div class="lab">Spesa netta</div><div class="v num">${eur0(cur.netta)}</div>${dl(cur.netta,prv.netta,false)}</div>
   <div class="glass tile"><div class="lab">Stipendio netto</div><div class="v num">${eur0(cur.stip+cur.extra)}</div><span class="d">${cur.extra?`di cui extra ${eur0(cur.extra)}`:'solo mensilità'}</span></div>
   <div class="glass tile"><div class="lab">Investito netto</div><div class="v num">${eur0(cur.inv-cur.disinv)}</div><span class="d">${cur.disinv?`comprati ${eur0(cur.inv)}, rientrati ${eur0(cur.disinv)}`:'PAC ed ETF'}${cur.rend?` · guadagni realizzati ${eur0(cur.rend)}`:''}</span></div></section>
+ ${S.accounts.length?`<section class="blk glass card"><div class="headrow"><h2>Conti</h2><button class="btn ghost sm" id="gacc">Gestisci</button></div><div class="list">${S.accounts.map(a=>{const b=accBal(a);return `<button class="row" data-goacc="${esc(a.name)}" style="padding:10px 0"><div class="main"><div class="t">${esc(a.name)}</div><div class="s">${accTypeLabel(a.type)}</div></div><div class="amt num ${b<0?'neg':''}">${eur(b)}</div></button>`}).join('')}</div></section>`:''}
  ${tips.length?`<section class="blk glass"><div class="card" style="padding-bottom:4px"><div class="headrow" style="margin:0"><h2>Da fare</h2><button class="btn ghost sm" id="alltips">Tutti i consigli</button></div></div>${tips.map(tipHTML).join('')}</section>`:''}
  <section class="blk glass card"><h2>Entrate e spesa netta, mese per mese</h2><p class="sub">Spesa netta = spese meno rimborsi ricevuti. La linea è la quota risparmiata.</p><div class="chart lg" style="margin-top:10px"><canvas id="ctrend"></canvas></div></section>
  <section class="blk glass card"><h2>Dove vanno i soldi</h2><p class="sub">Spese del periodo per categoria${per.kind!=='mese'?`, con la media al mese`:''}.</p>
@@ -409,7 +422,7 @@ function renderHome(){const main=$('#main');
  $$('[data-kind]').forEach(b=>b.onclick=()=>{per={kind:b.dataset.kind,off:0};render()});
  if($('#pprev')){$('#pprev').onclick=()=>{per.off--;render()};$('#pnext').onclick=()=>{if(per.off<0){per.off++;render()}}}
  if($('#alltips'))$('#alltips').onclick=()=>go('consigli');bindTipActions();
- $('#gopat').onclick=()=>go('patrimonio');
+ $('#gopat').onclick=()=>go('patrimonio');if($('#gacc'))$('#gacc').onclick=()=>accountsSheet();$$('[data-goacc]').forEach(b=>b.onclick=()=>{mf={q:'',t:'all',m:'all',c:'all',a:b.dataset.goacc};go('movimenti')});
  // trend
  const end=per.kind==='anno'?R.months[11]:per.kind==='mese'?R.months[0]:completeMonths();const ks=[];for(let i=11;i>=0;i--)ks.push(shiftK(end,-i));
  const md=ks.map(k=>agg(byMonth(k)));
@@ -431,37 +444,41 @@ function renderMov(){const main=$('#main');
  main.innerHTML+=`<input class="search" id="q" type="search" placeholder="Cerca descrizione o categoria" value="${esc(mf.q)}" aria-label="Cerca">
  <div class="filters"><div class="seg" role="group" aria-label="Tipo">${[['all','Tutti'],['out','Spese'],['in','Entrate'],['tr','Giroconti'],['inv','Investiti']].map(([k,l])=>`<button data-t="${k}" aria-pressed="${mf.t===k}">${l}</button>`).join('')}</div>
  <select id="mm" class="sel" aria-label="Mese"><option value="all">Tutti i mesi</option>${months.map(k=>`<option value="${k}" ${mf.m===k?'selected':''}>${esc(monthLabel(k))}</option>`).join('')}</select>
- <select id="mc" class="sel" aria-label="Categoria"><option value="all">Tutte le categorie</option>${cats.map(c=>`<option ${mf.c===c?'selected':''}>${esc(c)}</option>`).join('')}</select></div><div id="movlist"></div>`;
+ <select id="mc" class="sel" aria-label="Categoria"><option value="all">Tutte le categorie</option>${cats.map(c=>`<option ${mf.c===c?'selected':''}>${esc(c)}</option>`).join('')}</select>
+ ${accounts().length>1?`<select id="ma" class="sel" aria-label="Conto"><option value="all">Tutti i conti</option>${accounts().map(a=>`<option ${mf.a===a?'selected':''}>${esc(a)}</option>`).join('')}</select>`:''}</div><div id="movlist"></div>`;
+ if($('#ma'))$('#ma').onchange=e=>{mf.a=e.target.value;drawMovList()};
  $('#q').oninput=e=>{mf.q=e.target.value;drawMovList()};
  $$('[data-t]').forEach(b=>b.onclick=()=>{mf.t=b.dataset.t;$$('[data-t]').forEach(x=>x.setAttribute('aria-pressed',x===b));drawMovList()});
  $('#mm').onchange=e=>{mf.m=e.target.value;drawMovList()};$('#mc').onchange=e=>{mf.c=e.target.value;drawMovList()};
  $('#movlist').onclick=e=>{const r=e.target.closest('[data-id]');if(r)movForm(S.movs.find(m=>m.id===r.dataset.id))};
  drawMovList()}
 function drawMovList(){const q=mf.q.trim().toLowerCase();
- let l=S.movs.filter(m=>(mf.t==='all'||m.type===mf.t)&&(mf.m==='all'||m.date.startsWith(mf.m))&&(mf.c==='all'||m.cat===mf.c)&&(!q||(m.desc||'').toLowerCase().includes(q)||m.cat.toLowerCase().includes(q)));
+ let l=S.movs.filter(m=>(!mf.a||mf.a==='all'||m.acct===mf.a||m.to===mf.a)&&(mf.t==='all'||m.type===mf.t)&&(mf.m==='all'||m.date.startsWith(mf.m))&&(mf.c==='all'||m.cat===mf.c)&&(!q||(m.desc||'').toLowerCase().includes(q)||m.cat.toLowerCase().includes(q)));
  l.sort((a,b)=>a.date<b.date?1:a.date>b.date?-1:0);const total=l.length;const shown=l.slice(0,500);
  if(!shown.length){$('#movlist').innerHTML='<p class="note" style="padding:20px 4px">Nessun movimento corrisponde ai filtri.</p>';return}
  const g={};shown.forEach(m=>{const k=m.date.slice(0,7);(g[k]=g[k]||[]).push(m)});
- let h=`<p class="note" style="margin-top:10px">${total} movimenti${total>500?', mostrati i 500 più recenti':''} · spese ${eur0(sum(l.filter(m=>m.type==='out'),m=>m.amount))}</p>`;
+ const accSel=mf.a&&mf.a!=='all'?S.accounts.find(a=>a.name===mf.a):null;
+ let h=`${accSel?`<div class="glass card" style="margin-top:10px;display:flex;justify-content:space-between;align-items:center"><div><div class="lab">Saldo ${esc(accSel.name)}</div><div class="num" style="font-weight:800;font-size:1.4rem">${eur(accBal(accSel))}</div></div><button class="btn ghost sm" id="fixbal">Correggi saldo</button></div>`:''}<p class="note" style="margin-top:10px">${total} movimenti${total>500?', mostrati i 500 più recenti':''} · spese ${eur0(sum(l.filter(m=>m.type==='out'),m=>m.amount))}</p>`;
  for(const k of Object.keys(g)){const a=agg(g[k]);h+=`<div class="grouphead"><b>${esc(monthLabel(k))}</b><span class="note num"><span class="pos">+${eur0(a.entrate+a.rimb)}</span> &nbsp; <span class="neg">−${eur0(a.spese)}</span></span></div><div class="glass list">${g[k].map(rowHTML).join('')}</div>`}
- $('#movlist').innerHTML=h}
+ $('#movlist').innerHTML=h;if($('#fixbal'))$('#fixbal').onclick=()=>accountsSheet()}
 function rowHTML(m){if(m.type==='tr')return `<button class="row" data-id="${m.id}"><span class="ico" style="background:${css('--c8')}">⇄</span><div class="main"><div class="t">${esc(m.acct)} → ${esc(m.to||'?')}</div><div class="s">Giroconto${m.desc?' · '+esc(m.desc):''} · ${fmtDate(m.date)}</div></div><div class="amt num">${eur(m.amount)}</div></button>`;const sign=m.type==='in'?'+':'−';const cls=m.type==='in'?'pos':'';const col=m.type==='in'?css('--pos'):m.type==='inv'?css('--c5'):catColor(m.cat);
- return `<button class="row" data-id="${m.id}"><span class="ico" style="background:${col}">${esc((m.cat||'?').slice(0,2).toUpperCase())}</span><div class="main"><div class="t">${esc(m.desc||m.cat)}</div><div class="s">${esc(m.cat)}${m.type==='inv'?' · investimento':''}${m.straord?' · straordinaria':''} · ${fmtDate(m.date)}</div></div><div class="amt num ${cls}">${sign}${eur(m.amount)}</div></button>`}
+ return `<button class="row" data-id="${m.id}"><span class="ico" style="background:${col}">${esc((m.cat||'?').slice(0,2).toUpperCase())}</span><div class="main"><div class="t">${esc(m.desc||m.cat)}</div><div class="s">${esc(m.cat)}${m.type==='inv'?' · investimento':''}${m.straord?' · straordinaria':''}${S.accounts.length>1&&m.acct?' · '+esc(m.acct):''} · ${fmtDate(m.date)}</div></div><div class="amt num ${cls}">${sign}${eur(m.amount)}</div></button>`}
 function allCats(t){const since=iso(new Date(Date.now()-180*864e5));const cnt={};for(const m of S.movs)if(m.type===t&&m.date>=since)cnt[m.cat]=(cnt[m.cat]||0)+1;
  return[...new Set([...CATS[t]||[],...S.movs.filter(m=>m.type===t).map(m=>m.cat)])].sort((x,y)=>(cnt[y]||0)-(cnt[x]||0))}
-function accounts(){return[...new Set([...(S.settings.accounts||[]),...S.movs.flatMap(m=>[m.acct,m.to]).filter(Boolean)])]}
+function accounts(){const own=S.accounts.map(a=>a.name);return[...new Set([...(own.length?own:(S.settings.accounts||[])),...S.movs.flatMap(m=>[m.acct,m.to]).filter(Boolean)])]}
 const QUICK={'nuova-spesa':'out','nuova-entrata':'in','giroconto':'tr'};
 function movForm(m,preset,quick){const isNew=!m;const d=m?{...m}:{id:uid(),type:'out',date:today(),cat:'',desc:'',amount:'',straord:false,acct:mainAcct(),to:S.settings.accounts[1]||'Contanti',...(preset||{})};let type=d.type,cat=d.cat;
- const acc=accounts();const opt=v=>acc.map(a=>`<option ${a===v?'selected':''}>${esc(a)}</option>`).join('');
+ const acc=accounts().length?accounts():[mainAcct()];const opt=v=>acc.map(a=>`<option ${a===v?'selected':''}>${esc(a)}</option>`).join('');
  openSheet(`<h3>${isNew?'Nuovo movimento':'Modifica movimento'}</h3>
  <div class="seg" id="ftype" role="group" aria-label="Tipo">${[['out','Spesa'],['in','Entrata'],['tr','Giroconto'],['inv','Investim.']].map(([k,l])=>`<button data-v="${k}" aria-pressed="${type===k}">${l}</button>`).join('')}</div>
  <label class="f" style="margin-top:14px">Importo in euro<input id="famt" class="amount num" inputmode="decimal" autocomplete="off" placeholder="0,00" value="${numIn(d.amount)}"></label>
  <div class="f" id="fcatw">Categoria<div class="cats" id="fcats"></div><input id="fcatnew" placeholder="Oppure scrivi una nuova categoria"></div>
+ <label class="f" id="faccw">Conto<select id="facc">${opt(d.acct)}</select></label>
  <div class="f2" id="ftrw"><label class="f">Da<select id="ffrom">${opt(d.acct)}</select></label><label class="f">A<select id="fto">${opt(d.to||'Contanti')}</select></label></div>
  <div class="f2"><label class="f">Data<input id="fdate" type="date" value="${d.date}"></label><label class="f">Descrizione<input id="fdesc" value="${esc(d.desc)}" placeholder="Facoltativa"></label></div>
  <label class="check" id="fstraordw"><input type="checkbox" id="fstraord" ${d.straord?'checked':''}> Spesa straordinaria, da escludere dalle medie (es. maxirata)</label>
  <div class="actions">${isNew?'<button class="btn ghost" id="fagain">Salva e aggiungi altro</button>':'<button class="btn danger" id="fdel">Elimina</button>'}<button class="btn" id="fsave">Salva</button></div>`);
- const drawCats=()=>{const tr=type==='tr';$('#fcatw').hidden=tr;$('#ftrw').hidden=!tr;$('#fstraordw').hidden=type!=='out';if(tr)return;
+ const drawCats=()=>{const tr=type==='tr';$('#fcatw').hidden=tr;$('#ftrw').hidden=!tr;$('#faccw').hidden=tr||acc.length<2;$('#fstraordw').hidden=type!=='out';if(tr)return;
   const cs=allCats(type);if(cat&&!cs.includes(cat))cs.unshift(cat);$('#fcats').innerHTML=cs.map(c=>`<button type="button" data-c="${esc(c)}" aria-pressed="${c===cat}">${esc(c)}</button>`).join('')};
  drawCats();
  if(isNew)setTimeout(()=>{try{$('#famt').focus()}catch(e){}},quick?250:60);
@@ -469,7 +486,7 @@ function movForm(m,preset,quick){const isNew=!m;const d=m?{...m}:{id:uid(),type:
  $('#ftype').onclick=e=>{const b=e.target.closest('[data-v]');if(!b)return;type=b.dataset.v;$$('#ftype button').forEach(x=>x.setAttribute('aria-pressed',x===b));if(type!=='tr'&&!allCats(type).includes(cat))cat='';drawCats()};
  const doSave=again=>{const amt=parseNum($('#famt').value);if(!(amt>0)){toast('Inserisci un importo maggiore di zero');return}const date=$('#fdate').value;if(!date){toast('Scegli una data');return}
   let rec;if(type==='tr'){const f=$('#ffrom').value,t=$('#fto').value;if(f===t){toast('Scegli due conti diversi');return}rec={id:d.id,type:'tr',amount:Math.round(amt*100)/100,date,cat:'Giroconto',desc:$('#fdesc').value.trim(),acct:f,to:t}}
-  else{rec={id:d.id,type,amount:Math.round(amt*100)/100,date,cat:$('#fcatnew').value.trim()||cat||'Altro',desc:$('#fdesc').value.trim(),acct:d.acct||mainAcct()};if(type==='out'&&$('#fstraord').checked)rec.straord=true}
+  else{rec={id:d.id,type,amount:Math.round(amt*100)/100,date,cat:$('#fcatnew').value.trim()||cat||'Altro',desc:$('#fdesc').value.trim(),acct:$('#facc').value||d.acct||mainAcct()};if(type==='out'&&$('#fstraord').checked)rec.straord=true}
   const i=S.movs.findIndex(x=>x.id===d.id);if(i>=0)S.movs[i]=rec;else S.movs.push(rec);save();render();
   const lbl=type==='tr'?`Giroconto ${rec.acct} → ${rec.to}`:type==='in'?'Entrata':type==='inv'?'Investimento':'Spesa';
   if(again){movForm(null,{type,date,cat:type==='tr'?'':rec.cat,acct:rec.acct,to:rec.to},true);toast(`${lbl} di ${eur(rec.amount)} salvata`)}else{closeSheet();toast(`${lbl} di ${eur(rec.amount)} salvata`)}};
@@ -530,10 +547,11 @@ function renderPat(){const main=$('#main');const W=wealth(),R=etfRows(),s=S.sett
  const accTot=sum(s.acc,a=>a.amount),soglia=s.reserve+accTot,ex=W.cash-soglia;
  main.innerHTML=bigTitle('Patrimonio',`Totale <b class="num" style="color:var(--ink)">${eur0(W.tot)}</b>`)+`
  <section class="blk glass card"><h2>Composizione</h2><div class="chart sm" style="margin-top:8px"><canvas id="ccomp"></canvas></div>
-  <div class="legend">${[['Liquidità',W.cash,'--c6',W.cashD],['ETF',W.etf,'--c1',null],[fundName(),W.cometa,'--c2',W.cometaD]].map(([l,v,c,d])=>`<div class="lrow"><i class="sw" style="background:var(${c})"></i><span class="nm">${l}${d?` <span class="note">al ${fmtDate(d)}</span>`:''}</span><span class="note num">${W.tot?Math.round(v/(W.tot+W.debt)*100):0}%</span><b class="num">${eur0(v)}</b></div>`).join('')}${W.debt?`<div class="lrow"><i class="sw" style="background:var(--neg)"></i><span class="nm">Debiti residui</span><b class="num neg">−${eur0(W.debt)}</b></div>`:''}</div></section>
+  <div class="legend">${[['Liquidità',W.cash,'--c6',S.accounts.length?null:W.cashD],['ETF',W.etf,'--c1',null],[fundName(),W.cometa,'--c2',W.cometaD]].map(([l,v,c,d])=>`<div class="lrow"><i class="sw" style="background:var(${c})"></i><span class="nm">${l}${d?` <span class="note">al ${fmtDate(d)}</span>`:''}</span><span class="note num">${W.tot?Math.round(v/(W.tot+W.debt)*100):0}%</span><b class="num">${eur0(v)}</b></div>`).join('')}${W.debt?`<div class="lrow"><i class="sw" style="background:var(--neg)"></i><span class="nm">Debiti residui</span><b class="num neg">−${eur0(W.debt)}</b></div>`:''}</div></section>
 
- <section class="blk glass card"><div class="headrow"><div><h2>Liquidità</h2><p class="sub">Riserva ${eur0(s.reserve)}${accTot?` + accantonamenti ${eur0(accTot)}`:''}</p></div><button class="btn sm" id="upcash">Aggiorna saldo</button></div>
-  <div class="tiles" style="gap:8px"><div><div class="lab">Saldo conto</div><div class="num" style="font-weight:800;font-size:1.3rem">${eur0(W.cash)}</div></div><div><div class="lab">Sopra la soglia</div><div class="num ${ex>=0?'pos':'neg'}" style="font-weight:800;font-size:1.3rem">${sEur0(ex)}</div></div></div>
+ <section class="blk glass card"><div class="headrow"><div><h2>Liquidità</h2><p class="sub">Riserva ${eur0(s.reserve)}${accTot?` + accantonamenti ${eur0(accTot)}`:''}</p></div><button class="btn sm" id="upcash">Gestisci conti</button></div>
+  ${S.accounts.length?`<div class="list" style="margin-bottom:10px">${S.accounts.map(a=>{const b=accBal(a);return `<button class="row" data-goacc="${esc(a.name)}" style="padding:10px 0"><div class="main"><div class="t">${esc(a.name)}</div><div class="s">${accTypeLabel(a.type)}</div></div><div class="amt num ${b<0?'neg':''}">${eur(b)}</div></button>`}).join('')}</div>`:'<p class="note" style="margin-bottom:10px">Aggiungi i tuoi conti per avere i saldi aggiornati in automatico.</p>'}
+  <div class="tiles" style="gap:8px"><div><div class="lab">${S.accounts.length>1?'Totale conti':'Saldo conto'}</div><div class="num" style="font-weight:800;font-size:1.3rem">${eur0(W.cash)}</div></div><div><div class="lab">Sopra la soglia</div><div class="num ${ex>=0?'pos':'neg'}" style="font-weight:800;font-size:1.3rem">${sEur0(ex)}</div></div></div>
   <div class="bar" style="margin-top:12px"><i style="width:${Math.min(100,soglia?W.cash/soglia*100:0)}%;background:${W.cash>=soglia?'var(--pos)':'var(--warn)'}"></i></div>
   <div class="actions"><button class="btn ghost sm" id="editacc">Riserva e accantonamenti</button></div></section>
 
@@ -555,7 +573,7 @@ function renderPat(){const main=$('#main');const W=wealth(),R=etfRows(),s=S.sett
  <section class="blk glass card"><div class="headrow"><div><h2>Finanziamenti</h2><p class="sub">Rata, debito residuo e interessi ancora da pagare.</p></div><button class="btn sm ghost" id="addloan">Aggiungi</button></div>
   ${S.loans.length?`<div class="list" id="loanlist">${S.loans.map(l=>{const c=loanCalc(l);return `<button class="row" data-id="${l.id}" style="display:block;padding:12px 0"><div style="display:flex;justify-content:space-between;gap:10px"><b>${esc(l.name)}</b><b class="num">${eur0(c.residuo)}</b></div><div class="s">${c.next?`Rata ${eur(c.rata)}, prossima il ${fmtDate(c.next.d)}`:'Concluso'}</div><div class="bar"><i style="width:${c.paid/c.n*100}%"></i></div></button>`}).join('')}</div>`:'<p class="note">Nessun finanziamento attivo.</p>'}</section>`;
  if($('#qnow'))$('#qnow').onclick=()=>refreshQuotes(true);if($('#qset'))$('#qset').onclick=quoteSheet;
- $('#upcash').onclick=cashForm;$('#editacc').onclick=accSheet;$('#addetf').onclick=()=>etfForm();$('#upcom').onclick=cometaForm;$('#addloan').onclick=()=>loanForm();
+ $('#upcash').onclick=()=>accountsSheet();$$('[data-goacc]').forEach(b=>b.onclick=()=>{mf={q:'',t:'all',m:'all',c:'all',a:b.dataset.goacc};go('movimenti')});$('#editacc').onclick=accSheet;$('#addetf').onclick=()=>etfForm();$('#upcom').onclick=cometaForm;$('#addloan').onclick=()=>loanForm();
  $('#etflist').onclick=e=>{const r=e.target.closest('[data-id]');if(r)etfDetail(r.dataset.id)};
  if($('#loanlist'))$('#loanlist').onclick=e=>{const r=e.target.closest('[data-id]');if(r)loanDetail(r.dataset.id)};
  mk('ccomp',{type:'doughnut',data:{labels:['Liquidità','ETF',fundName()],datasets:[{data:[W.cash,W.etf,W.cometa],backgroundColor:[css('--c6'),css('--c1'),css('--c2')],borderColor:css('--bg'),borderWidth:2}]},options:{maintainAspectRatio:false,cutout:'66%',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.label}: ${eur0(c.raw)}`}}}}});
@@ -571,10 +589,19 @@ function renderPat(){const main=$('#main');const W=wealth(),R=etfRows(),s=S.sett
   $('#pjtab').innerHTML=`<div class="scrollx"><table><thead><tr><th>Scenario</th><th>Lordo</th><th>Netto dopo il 26%</th></tr></thead><tbody>${rates.map(([r,l],i)=>{const f=series[i][Y];return `<tr><td>${l}</td><td class="num">${eur0(f)}</td><td class="num"><b>${eur0(f-Math.max(0,f-(C+C0*Y))*.26)}</b></td></tr>`}).join('')}</tbody></table></div><p class="note" style="margin-top:6px">Versato in tutto ${eur0(C+C0*Y)}. Il bollo dello 0,20% annuo non è incluso.</p>`};
  $('#pjc').onchange=drawProj;$('#pjy').onchange=drawProj;drawProj();
 }
-function cashForm(){const l=lastOf(S.cash.hist);openSheet(`<h3>Saldo del conto</h3><p class="note" style="margin-top:-6px">Il saldo disponibile che vedi nell'app della banca.</p>
- <label class="f" style="margin-top:12px">Saldo (€)<input id="cv" class="amount num" inputmode="decimal" value="${l?numIn(l.v):''}"></label><label class="f">Data<input id="cd" type="date" value="${today()}"></label>
- <div class="actions"><button class="btn ghost" id="cx">Annulla</button><button class="btn" id="cs">Salva saldo</button></div>`);
- $('#cx').onclick=closeSheet;$('#cs').onclick=()=>{const v=parseNum($('#cv').value);if(isNaN(v)){toast('Inserisci il saldo');return}const d=$('#cd').value||today();S.cash.hist=S.cash.hist.filter(h=>h.d!==d);S.cash.hist.push({d,v});save();closeSheet();render();toast('Saldo aggiornato')}}
+function accountsSheet(after){let list=S.accounts.map(a=>({...a,bal:Math.round(accBal(a)*100)/100}));
+ const draw=()=>{openSheet(`<h3>I tuoi conti</h3><p class="note" style="margin-top:-6px">Conti correnti, contanti, carte e depositi. Il saldo si aggiorna da solo con i movimenti: qui lo correggi se non torna con la banca.</p>
+ <div id="accl">${list.map(a=>`<div class="glass" style="padding:12px;margin-top:10px" data-a="${a.id}"><div class="f2"><label class="f">Nome<input class="an" value="${esc(a.name)}" placeholder="Per esempio Banca Generali"></label><label class="f">Tipo<select class="at">${ACC_TYPES.map(([k,l])=>`<option value="${k}" ${a.type===k?'selected':''}>${l}</option>`).join('')}</select></label></div><label class="f">Saldo attuale (€)<input class="ab" inputmode="decimal" value="${numIn(a.bal)}" placeholder="0,00"></label><button class="btn danger sm" type="button" data-del="${a.id}">Elimina</button></div>`).join('')||'<p class="note" style="margin-top:10px">Nessun conto. Aggiungi almeno il tuo conto corrente.</p>'}</div>
+ <div class="actions"><button class="btn ghost" id="aadd">Aggiungi conto</button><button class="btn" id="asv">Salva</button></div>`);
+  const collect=()=>{list=[...$$('#accl [data-a]')].map(r=>{const o=list.find(x=>x.id===r.dataset.a);const b=parseNum(r.querySelector('.ab').value);return{...o,name:r.querySelector('.an').value.trim(),type:r.querySelector('.at').value,bal:isNaN(b)?0:b}})};
+  $('#aadd').onclick=()=>{collect();list.push({id:uid(),name:'',type:list.length?'contanti':'conto',adj:0,bal:0,isNew:true});draw();const ins=$$('#accl .an');ins[ins.length-1].focus()};
+  $('#accl').onclick=async e=>{const b=e.target.closest('[data-del]');if(!b)return;collect();const a=list.find(x=>x.id===b.dataset.del);const n=S.movs.filter(m=>m.acct===a.name||m.to===a.name).length;
+   if(n&&!(await ask(`Eliminare ${a.name||'questo conto'}?`,`${n} movimenti lo usano: restano nell'elenco, ma il conto non comparirà più nei saldi.`,'Elimina',true))){draw();return}list=list.filter(x=>x.id!==a.id);draw()};
+  $('#asv').onclick=()=>{collect();if(list.some(a=>!a.name)){toast('Dai un nome a ogni conto');return}const nm=list.map(a=>a.name.toLowerCase());if(new Set(nm).size!==nm.length){toast('Due conti hanno lo stesso nome');return}
+   const next=[];for(const a of list){const old=S.accounts.find(x=>x.id===a.id);if(old&&old.name!==a.name)for(const m of S.movs){if(m.acct===old.name)m.acct=a.name;if(m.to===old.name)m.to=a.name}
+    const acc={id:a.id,name:a.name,type:a.type,adj:old?old.adj:0};if(old&&old.setOn)acc.setOn=old.setOn;const cur=Math.round(accBal(acc)*100)/100;if(!old||Math.abs(cur-a.bal)>=0.005)setAccBal(acc,a.bal);next.push(acc)}
+   S.accounts=next;S.settings.accounts=next.map(a=>a.name);save();closeSheet();render();toast('Conti salvati');if(after)after()}};draw()}
+function cashForm(){accountsSheet()}
 function cometaForm(){const c=S.cometa,l=lastOf(c.hist);openSheet(`<h3>Fondo pensione</h3><p class="note" style="margin-top:-6px">Copia i valori dalla tua area riservata.</p>
  <label class="f" style="margin-top:12px">Nome del fondo<input id="kn" value="${esc(c.name||'')}" placeholder="Per esempio Cometa"></label>
  <div class="f2" style="margin-top:12px"><label class="f">Posizione totale (€)<input id="kv" inputmode="decimal" value="${l?numIn(l.v):''}"></label><label class="f">Data<input id="kd" type="date" value="${today()}"></label></div>
@@ -672,8 +699,9 @@ function insights(){const out=[],s=S.settings,W=wealth(),R=etfRows(),V=sum(R,x=>
    if(core&&core.p){const q=Math.floor((ex-fee(ex))/core.p);const f=fee(q*core.p);t+=` A ${eur(core.p)} sono ${q} quote di ${core.e.ticker||core.e.name} per ${eur0(q*core.p)}, commissione circa ${eur(f)} (${pct(f/(q*core.p),2)}).`}
    add('act',`Puoi investire ${eur0(ex)}`,t+' Usa un ordine con limite, tra le 10 e le 17.')}
   else if(ex>0)add('info','Eccedenza ancora piccola',`Sopra la soglia ci sono ${eur0(ex)}. Aspetta di arrivare a ${eur0(s.minOrder)}: con la commissione minima di ${eur(s.feeMin)} un ordine piccolo costa ${pct(s.feeMin/Math.max(ex,1),1)}.`);
-  if(daysSince(W.cashD)>30)add('info','Aggiorna il saldo del conto',`L'ultimo saldo è del ${fmtDate(W.cashD)}. Aggiornalo per avere consigli sull'eccedenza corretti.`,{label:'Aggiorna saldo',fn:'cash'})}
- else add('info','Inserisci il saldo del conto','Serve per calcolare quanto puoi investire sopra la riserva.',{label:'Inserisci saldo',fn:'cash'});
+  if(!S.accounts.length&&daysSince(W.cashD)>30)add('info','Aggiorna il saldo del conto',`L'ultimo saldo è del ${fmtDate(W.cashD)}. Aggiornalo per avere consigli sull'eccedenza corretti.`,{label:'Aggiorna saldo',fn:'cash'});
+  const old=S.accounts.filter(a=>a.setOn&&daysSince(a.setOn)>60);if(old.length)add('info','Controlla i saldi dei conti',`${old.map(a=>a.name).join(', ')}: l'ultima verifica con la banca è di oltre due mesi fa. Se il saldo non torna, correggilo.`,{label:'Gestisci conti',fn:'cash'})}
+ else add('info','Aggiungi i tuoi conti','Servono per avere i saldi aggiornati e calcolare quanto puoi investire sopra la riserva.',{label:'Aggiungi conti',fn:'cash'});
  // satellite
  if(V>0)for(const x of R)if(x.e.role==='sat'){const w=x.v/V;if(w>s.satMax/100)add('warn',`${x.e.ticker||x.e.name} sopra il ${s.satMax}%`,`Pesa il ${pct(w)} degli ETF. Non vendere: compra solo il core finché non torna sotto il limite.`);
   else add('good',`${x.e.ticker||x.e.name} al ${pct(w)} degli ETF`,`Sotto il limite del ${s.satMax}% che ti sei dato. Con i nuovi acquisti solo sul core scenderà da solo.`)}
@@ -732,18 +760,18 @@ function parseCSV(text){text=text.replace(/^﻿/,'');const first=text.split(/\r?
 function csvToMovs(text){const rows=parseCSV(text);if(!rows.length)return{error:'Il file è vuoto'};
  let h=rows[0].map(x=>x.trim().toLowerCase()),body=rows.slice(1);if(parseDate(rows[0][0])){h=['data','tipo','categoria','descrizione','importo'];body=rows}
  const f=(...n)=>h.findIndex(x=>n.some(k=>x.includes(k)));
- const iD=f('data','date'),iT=f('tipo','type','segno'),iC=f('categ','category'),iS=f('descr','causale','dettagl','note','memo','title','titolo'),iA=f('importo','amount','ammontare','valore'),iI=f('entrat','avere','accredit','credit'),iO=f('uscit','dare','addebit','debit');
+ const iAc=h.findIndex(x=>/^(conto|account|portafoglio|wallet)$/.test(x)),iD=f('data','date'),iT=f('tipo','type','segno'),iC=f('categ','category'),iS=f('descr','causale','dettagl','note','memo','title','titolo'),iA=f('importo','amount','ammontare','valore'),iI=f('entrat','avere','accredit','credit'),iO=f('uscit','dare','addebit','debit');
  if(iD<0)return{error:'Non trovo una colonna con la data'};if(iA<0&&iI<0&&iO<0)return{error:'Non trovo una colonna con gli importi'};
  const out=[];let skipped=0;
  for(const r of body){const date=parseDate(r[iD]);let amt=NaN,type=null;
   if(iA>=0&&(r[iA]||'').trim())amt=parseNum(r[iA]);else{const a=iI>=0?parseNum(r[iI]):NaN,b=iO>=0?parseNum(r[iO]):NaN;if(a&&!isNaN(a)){amt=Math.abs(a);type='in'}else if(b&&!isNaN(b)){amt=Math.abs(b);type='out'}}
   if(!date||isNaN(amt)||amt===0){skipped++;continue}
   if(!type){const tv=iT>=0?(r[iT]||'').toLowerCase().trim():'';if(/^(invest)/.test(tv))type='inv';else if(/^(giro|trasf|transfer)/.test(tv))type='tr';else if(/^(entr|in\b|e$|\+|accr|avere|credit|income)/.test(tv))type='in';else if(/^(usc|spes|out|u$|-|addeb|dare|debit|expense)/.test(tv))type='out';else type=amt<0?'out':'in'}
-  out.push({id:uid(),date,type,amount:Math.round(Math.abs(amt)*100)/100,cat:(iC>=0&&(r[iC]||'').trim())||'Altro',desc:iS>=0?(r[iS]||'').trim().replace(/\s+/g,' ').slice(0,140):'',acct:mainAcct()})}
+  out.push({id:uid(),date,type,amount:Math.round(Math.abs(amt)*100)/100,cat:(iC>=0&&(r[iC]||'').trim())||'Altro',desc:iS>=0?(r[iS]||'').trim().replace(/\s+/g,' ').slice(0,140):'',acct:(iAc>=0&&(r[iAc]||'').trim())||mainAcct()})}
  return{movs:out,skipped}}
 async function readText(file){const buf=await file.arrayBuffer();try{return new TextDecoder('utf-8',{fatal:true}).decode(buf)}catch(e){return new TextDecoder('windows-1252').decode(buf)}}
 const csvQ=s=>/[;"\n\r]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;
-function movCSV(){const L=['data;tipo;categoria;descrizione;importo'];S.movs.slice().sort((a,b)=>a.date<b.date?-1:1).forEach(m=>L.push([m.date,m.type==='in'?'entrata':m.type==='inv'?'investimento':m.type==='tr'?'giroconto':'uscita',csvQ(m.cat),csvQ(m.type==='tr'?`${m.acct||''} → ${m.to||''}${m.desc?' · '+m.desc:''}`:(m.desc||'')),m.amount.toFixed(2).replace('.',',')].join(';')));return '﻿'+L.join('\r\n')}
+function movCSV(){const L=['data;tipo;categoria;descrizione;importo;conto'];S.movs.slice().sort((a,b)=>a.date<b.date?-1:1).forEach(m=>L.push([m.date,m.type==='in'?'entrata':m.type==='inv'?'investimento':m.type==='tr'?'giroconto':'uscita',csvQ(m.cat),csvQ(m.type==='tr'?`${m.acct||''} → ${m.to||''}${m.desc?' · '+m.desc:''}`:(m.desc||'')),m.amount.toFixed(2).replace('.',','),csvQ(m.acct||'')].join(';')));return '﻿'+L.join('\r\n')}
 async function loadSeed(){try{const r=await fetch('storico.json',{cache:'no-store'});if(!r.ok)return null;const j=await r.json();const ok=j&&Array.isArray(j.movs);if(ok)seedAvail=true;return ok?j:null}catch(e){return null}}
 /* storico iniziale: unisce una versione più recente senza perdere quello che hai aggiunto a mano */
 const OLD_SEED_ID=/^m\d{3}$/;
@@ -754,22 +782,23 @@ function mergeSeed(sd){const key=m=>m.date+'|'+(+m.amount).toFixed(2)+'|'+m.type
  const mergeH=(a,b)=>{const o={};for(const h of[...(b||[]),...(a||[])])o[h.d]=h;return Object.values(o)};
  S.cash.hist=mergeH(S.cash.hist,sd.cash&&sd.cash.hist);S.cometa.hist=mergeH(S.cometa.hist,sd.cometa&&sd.cometa.hist);
  if(!S.etfs.length)S.etfs=norm(sd).etfs;
- S.ivySeen=[...new Set([...(sd.ivySeen||[]),...S.ivySeen])];S.rev=sd.rev||0;
- const ss=sd.settings||{};for(const k of['name','cardCat','ivyMap','accounts'])if(ss[k]!==undefined&&JSON.stringify(S.settings[k])===JSON.stringify(DEF_SET[k]))S.settings[k]=ss[k];
- if(sd.cometa&&sd.cometa.name&&!S.cometa.name)S.cometa.name=sd.cometa.name;return S.movs.length}
+ S.extSeen=[...new Set([...((sd.extSeen||sd.ivySeen)||[]),...S.extSeen])];S.rev=sd.rev||0;
+ const ss=sd.settings||{};for(const k of['name','cardCat','extMap','accounts'])if(ss[k]!==undefined&&JSON.stringify(S.settings[k])===JSON.stringify(DEF_SET[k]))S.settings[k]=ss[k];
+ if(sd.cometa&&sd.cometa.name&&!S.cometa.name)S.cometa.name=sd.cometa.name;
+ if(Array.isArray(sd.accounts)&&sd.accounts.length&&(!S.accounts.length||S.accounts.every(a=>a.auto)))S.accounts=sd.accounts.map(a=>({...a}));return S.movs.length}
 
-/* import diretto del backup di Ivy Wallet (.zip) */
+/* import da backup di un'altra app di spese (.zip/.json) */
 function decodeJSONBytes(u){if(u[0]===0xFF&&u[1]===0xFE)return new TextDecoder('utf-16le').decode(u.subarray(2));if(u[0]===0xFE&&u[1]===0xFF)return new TextDecoder('utf-16be').decode(u.subarray(2));return new TextDecoder('utf-8').decode(u).replace(/^﻿/,'')}
-async function readIvy(file){let text;
+async function readExt(file){let text;
  if(/\.zip$/i.test(file.name)||file.type.includes('zip')){if(!window.JSZip)throw new Error('Serve la connessione per aprire lo zip');const z=await JSZip.loadAsync(file);const f=Object.values(z.files).find(x=>!x.dir&&/\.json$/i.test(x.name));if(!f)throw new Error('Nello zip non c\'è il file dei dati');text=decodeJSONBytes(await f.async('uint8array'))}
  else text=decodeJSONBytes(new Uint8Array(await file.arrayBuffer()));
- const j=JSON.parse(text);if(!j||!Array.isArray(j.transactions)||!Array.isArray(j.accounts))throw new Error('Non è un backup di Ivy Wallet');return j}
-const IVY_KINDS=[['cash','Conto / liquidità'],['inv','Investimenti'],['skip','Ignora']];
-function ivyGuess(name){return /etf|pac|invest|fond|broker|trade|azion|crypto|cripto/i.test(name)?'inv':/prestit|loan|debit|credit/i.test(name)?'skip':'cash'}
-function ivyKinds(j){const m=S.settings.ivyMap||{};const o={};for(const a of j.accounts)o[a.id]=m[a.name]||ivyGuess(a.name);return o}
-function ivyToMovs(j,K){const A={},C={};j.accounts.forEach(a=>A[a.id]=a.name);(j.categories||[]).forEach(c=>C[c.id]=c.name);
+ const j=JSON.parse(text);if(!j||!Array.isArray(j.transactions)||!Array.isArray(j.accounts))throw new Error('Formato di backup non riconosciuto');return j}
+const EXT_KINDS=[['cash','Conto / liquidità'],['inv','Investimenti'],['skip','Ignora']];
+function extGuess(name){return /etf|pac|invest|fond|broker|trade|azion|crypto|cripto/i.test(name)?'inv':/prestit|loan|debit|credit/i.test(name)?'skip':'cash'}
+function extKinds(j){const m=S.settings.extMap||{};const o={};for(const a of j.accounts)o[a.id]=m[a.name]||extGuess(a.name);return o}
+function extToMovs(j,K){const A={},C={};j.accounts.forEach(a=>A[a.id]=a.name);(j.categories||[]).forEach(c=>C[c.id]=c.name);
  const kOf=id=>A[id]===undefined?'skip':K[id];
- const fix=c=>c==='Loans'?'Prestiti':c;const seen=new Set(S.ivySeen);const have=new Set(S.movs.map(m=>m.date+'|'+(+m.amount).toFixed(2)+'|'+m.type));
+ const fix=c=>c==='Loans'?'Prestiti':c;const seen=new Set(S.extSeen);const have=new Set(S.movs.map(m=>m.date+'|'+(+m.amount).toFixed(2)+'|'+m.type));
  const out=[],newSeen=[];let skipped=0;
  // un versamento registrato come spesa sul conto e come entrata sul conto investimenti (stesso giorno e importo) è un investimento
  const invIn=new Set(j.transactions.filter(t=>t.type==='INCOME'&&kOf(t.accountId)==='inv').map(t=>iso(new Date(t.dateTime))+'|'+t.amount));
@@ -784,31 +813,31 @@ function ivyToMovs(j,K){const A={},C={};j.accounts.forEach(a=>A[a.id]=a.name);(j
   if(!m){skipped++;continue}
   const rec={id:t.id,date,amount:amt,acct:acct||mainAcct(),...m};if(have.has(rec.date+'|'+rec.amount.toFixed(2)+'|'+rec.type)){skipped++;continue}out.push(rec)}
  // saldo dei conti di liquidità (i trasferimenti verso conti eliminati non lo riducono)
- let bal=0,last='';for(const t of j.transactions){if(!t.dateTime)continue;const d=iso(new Date(t.dateTime));if(d>last)last=d;const ka=kOf(t.accountId),kb=t.toAccountId?kOf(t.toAccountId):null;
-  if(t.type==='INCOME'&&ka==='cash')bal+=t.amount;else if(t.type==='EXPENSE'&&ka==='cash')bal-=t.amount;else if(t.type==='TRANSFER'&&A[t.toAccountId]!==undefined){if(ka==='cash')bal-=t.amount;if(kb==='cash')bal+=(t.toAmount||t.amount)}}
+ let bal=0,last='';const per={};const addB=(id,v)=>{const n=A[id];per[n]=(per[n]||0)+v;bal+=v};for(const t of j.transactions){if(!t.dateTime)continue;const d=iso(new Date(t.dateTime));if(d>last)last=d;const ka=kOf(t.accountId),kb=t.toAccountId?kOf(t.toAccountId):null;
+  if(t.type==='INCOME'&&ka==='cash')addB(t.accountId,t.amount);else if(t.type==='EXPENSE'&&ka==='cash')addB(t.accountId,-t.amount);else if(t.type==='TRANSFER'&&A[t.toAccountId]!==undefined){if(ka==='cash')addB(t.accountId,-t.amount);if(kb==='cash')addB(t.toAccountId,(t.toAmount||t.amount))}}
  const names=[...new Set(j.accounts.filter(a=>Object.entries(K).some(([id,k])=>id===a.id&&k==='cash')).map(a=>a.name))];
- return{out,newSeen,skipped,bal:Math.round(bal*100)/100,last,names}}
-function ivyMapSheet(j,then){const K=ivyKinds(j);const used={};j.transactions.forEach(t=>{used[t.accountId]=(used[t.accountId]||0)+1;if(t.toAccountId)used[t.toAccountId]=(used[t.toAccountId]||0)+1});
- openSheet(`<h3>Che tipo di conti sono?</h3><p class="note" style="margin-top:-6px">Serve per distinguere spese, giroconti e investimenti. Lo ricordo per le prossime importazioni.</p>
- <div style="margin-top:12px">${j.accounts.map(a=>`<label class="f">${esc(a.name)} <span style="font-weight:500">· ${used[a.id]||0} movimenti</span><select data-acc="${esc(a.id)}">${IVY_KINDS.map(([k,l])=>`<option value="${k}" ${K[a.id]===k?'selected':''}>${l}</option>`).join('')}</select></label>`).join('')}</div>
+ return{out,newSeen,skipped,bal:Math.round(bal*100)/100,last,names,per}}
+function extMapSheet(j,then){const K=extKinds(j);const used={};j.transactions.forEach(t=>{used[t.accountId]=(used[t.accountId]||0)+1;if(t.toAccountId)used[t.toAccountId]=(used[t.toAccountId]||0)+1});
+ openSheet(`<h3>Che tipo di conti sono?</h3><p class="note" style="margin-top:-6px">I conti trovati nel backup. Serve per distinguere spese, giroconti e investimenti; lo ricordo per le prossime importazioni.</p>
+ <div style="margin-top:12px">${j.accounts.map(a=>`<label class="f">${esc(a.name)} <span style="font-weight:500">· ${used[a.id]||0} movimenti</span><select data-acc="${esc(a.id)}">${EXT_KINDS.map(([k,l])=>`<option value="${k}" ${K[a.id]===k?'selected':''}>${l}</option>`).join('')}</select></label>`).join('')}</div>
  <div class="actions"><button class="btn ghost" id="imx">Annulla</button><button class="btn" id="imok">Continua</button></div>`);
- $('#imx').onclick=closeSheet;$('#imok').onclick=()=>{const map={...(S.settings.ivyMap||{})};$$('[data-acc]').forEach(sel=>{const a=j.accounts.find(x=>x.id===sel.dataset.acc);K[a.id]=sel.value;map[a.name]=sel.value});S.settings.ivyMap=map;save();then(K)}}
-let lastIvy=null;
-async function importIvy(file){let j;try{j=await readIvy(file)}catch(e){toast(e.message||'File non valido',5000);return}lastIvy=j;
- ivyMapSheet(j,async K=>{const r=ivyToMovs(j,K);const nin=r.out.filter(m=>m.type==='in').length,ninv=r.out.filter(m=>m.type==='inv').length,ntr=r.out.filter(m=>m.type==='tr').length;
-  if(!r.out.length){closeSheet();toast(r.newSeen.length?'Nessun movimento da importare':'Nessun movimento nuovo nel backup',4000);S.ivySeen.push(...r.newSeen);save();return}
-  if(await ask(`Importare ${r.out.length} movimenti da Ivy Wallet?`,`${r.out.length-nin-ninv-ntr} spese, ${nin} entrate, ${ninv} investimenti, ${ntr} giroconti.${r.skipped?` ${r.skipped} tra rettifiche, movimenti dei conti investimento e doppioni saltati.`:''} Saldo liquidità secondo Ivy (${r.names.join(', ')}): ${eur(r.bal)} al ${r.last?fmtDate(r.last):'–'}.`,'Importa')){
-   S.movs.push(...r.out);S.ivySeen.push(...r.newSeen);if(JSON.stringify(S.settings.accounts)===JSON.stringify(DEF_SET.accounts))S.settings.accounts=[...r.names];else for(const n of r.names)if(!S.settings.accounts.includes(n))S.settings.accounts.push(n);
-   if(r.last){S.cash.hist=S.cash.hist.filter(h=>h.d!==r.last);S.cash.hist.push({d:r.last,v:r.bal})}
-   save();mf={q:'',t:'all',m:'all',c:'all'};go('movimenti');toast(`Importati ${r.out.length} movimenti, saldo aggiornato`,4000)}})}
+ $('#imx').onclick=closeSheet;$('#imok').onclick=()=>{const map={...(S.settings.extMap||{})};$$('[data-acc]').forEach(sel=>{const a=j.accounts.find(x=>x.id===sel.dataset.acc);K[a.id]=sel.value;map[a.name]=sel.value});S.settings.extMap=map;save();then(K)}}
+let lastExt=null;
+async function importExt(file){let j;try{j=await readExt(file)}catch(e){toast(e.message||'File non valido',5000);return}lastExt=j;
+ extMapSheet(j,async K=>{const r=extToMovs(j,K);const nin=r.out.filter(m=>m.type==='in').length,ninv=r.out.filter(m=>m.type==='inv').length,ntr=r.out.filter(m=>m.type==='tr').length;
+  if(!r.out.length){closeSheet();toast(r.newSeen.length?'Nessun movimento da importare':'Nessun movimento nuovo nel backup',4000);S.extSeen.push(...r.newSeen);save();return}
+  if(await ask(`Importare ${r.out.length} movimenti dal backup?`,`${r.out.length-nin-ninv-ntr} spese, ${nin} entrate, ${ninv} investimenti, ${ntr} giroconti.${r.skipped?` ${r.skipped} tra rettifiche, movimenti dei conti investimento e doppioni saltati.`:''} Saldi nel backup: ${r.names.map(n=>n+' '+eur(r.per[n]||0)).join(', ')}.`,'Importa')){
+   S.movs.push(...r.out);S.extSeen.push(...r.newSeen);
+   for(const n of r.names){let a=S.accounts.find(x=>x.name===n);if(!a){a={id:uid(),name:n,type:accGuess(n),adj:0};S.accounts.push(a)}setAccBal(a,Math.round((r.per[n]||0)*100)/100)}
+   S.settings.accounts=S.accounts.map(a=>a.name);save();mf={q:'',t:'all',m:'all',c:'all',a:'all'};go('movimenti');toast(`Importati ${r.out.length} movimenti, saldi dei conti aggiornati`,4000)}})}
 async function importCSVFile(file){if(/\.(xlsx?|ods|numbers)$/i.test(file.name)){toast('È un foglio di calcolo: esportalo in CSV e riprova',5000);return}
  const res=csvToMovs(await readText(file));if(res.error){toast(res.error,4000);return}
  const k=m=>m.date+'|'+m.amount.toFixed(2)+'|'+m.type;const ex=new Set(S.movs.map(k));const fresh=res.movs.filter(m=>!ex.has(k(m)));const dup=res.movs.length-fresh.length;
  if(!fresh.length){toast(`Nessun movimento nuovo (${dup} già presenti)`,5000);return}
- if(await ask(`Importare ${fresh.length} movimenti?`,`${dup?dup+' già presenti verranno saltati. ':''}${res.skipped?res.skipped+' righe senza data o importo verranno ignorate.':''}`,'Importa')){S.movs.push(...fresh);save();mf={q:'',t:'all',m:'all',c:'all'};go('movimenti');toast(`Importati ${fresh.length} movimenti`)}}
+ if(await ask(`Importare ${fresh.length} movimenti?`,`${dup?dup+' già presenti verranno saltati. ':''}${res.skipped?res.skipped+' righe senza data o importo verranno ignorate.':''}`,'Importa')){S.movs.push(...fresh);save();mf={q:'',t:'all',m:'all',c:'all',a:'all'};go('movimenti');toast(`Importati ${fresh.length} movimenti`)}}
 async function restoreFile(file){let j;try{j=JSON.parse(await readText(file))}catch(e){toast('Il file non è un backup valido');return}
  if(!j||!Array.isArray(j.movs)){toast('Il file non è un backup di questa app');return}
- if(await ask('Ripristinare il backup?',`Contiene ${j.movs.length} movimenti e ${(j.etfs||[]).length} ETF. I dati attuali verranno sostituiti.`,'Ripristina',true)){S=norm(j);save();applyTheme();go('home');startQuotes();toast('Backup ripristinato')}}
+ if(await ask('Ripristinare il backup?',`Contiene ${j.movs.length} movimenti e ${(j.etfs||[]).length} ETF. I dati attuali verranno sostituiti.`,'Ripristina',true)){S=norm(j);migrateAccounts();save();applyTheme();go('home');startQuotes();toast('Backup ripristinato')}}
 
 function quoteSheet(){const s=S.settings;let prov=s.provider;
  const draw=()=>{openSheet(`<h3>Quotazioni automatiche</h3><p class="note" style="margin-top:-6px">I prezzi degli ETF si aggiornano da soli mentre l'app è aperta e la borsa è aperta. Serve una chiave gratuita del fornitore. Funziona nell'app installata; la versione dentro Claude non può collegarsi a siti esterni.</p>
@@ -825,11 +854,11 @@ function settingsSheet(){const st=S.settings;
  openSheet(`<h3>Dati e impostazioni</h3><p class="note" style="margin-top:-6px">${S.movs.length} movimenti, ${S.payslips.length} buste paga, ${S.etfs.length} ETF salvati su questo dispositivo${storageOk?'':'. Attenzione: il salvataggio qui non funziona, esporta un backup'}.</p>
  <div style="margin-top:14px"><div class="eyebrow">Tema</div><div class="seg" id="thseg2" style="margin-top:6px">${[['auto','Automatico'],['light','Chiaro'],['dark','Scuro']].map(([k,l])=>`<button data-th="${k}" aria-pressed="${st.theme===k}">${l}</button>`).join('')}</div></div>
  <div style="margin-top:18px"><div class="eyebrow">Profilo</div><div class="f2" style="margin-top:6px"><label class="f">Il tuo nome<input id="stname" value="${esc(st.name||'')}"></label><label class="f">Categoria del saldo carta<input id="stcard" value="${esc(st.cardCat||'')}" placeholder="Per esempio Carta di credito"></label></div>
-  <label class="f">Conti (il primo è quello principale), separati da virgola<input id="accl2" value="${esc((st.accounts||[]).join(', '))}"></label></div>
+  <div class="actions" style="margin-top:0"><button class="btn ghost" id="goacc2">Conti: ${S.accounts.length?esc(S.accounts.map(a=>a.name).join(', ')):'nessuno'}</button></div></div>
  <div style="margin-top:18px"><div class="eyebrow">Quotazioni</div><div class="actions" style="margin-top:6px"><button class="btn ghost" id="goq">Quotazioni automatiche: ${st.provider==='none'?'spente':PROV[st.provider].name}</button></div></div>
- <div style="margin-top:18px"><div class="eyebrow">Importa</div><p class="note" style="margin:6px 0">Dal backup di Ivy Wallet (il file .zip che esporti dall'app) o da un CSV con data, tipo, categoria, descrizione, importo. I movimenti già presenti vengono saltati.</p>
-  <div class="actions" style="margin-top:6px"><button class="btn" id="pickivy">Backup Ivy Wallet (.zip)</button><button class="btn ghost" id="pickcsv">File CSV</button></div>
-  <div class="actions" style="margin-top:8px"><button class="btn ghost sm" id="tpl">Scarica modello CSV</button>${lastIvy?'<button class="btn ghost sm" id="ivymap">Tipi di conto Ivy</button>':''}</div></div>
+ <div style="margin-top:18px"><div class="eyebrow">Importa</div><p class="note" style="margin:6px 0">Dal file di backup (.zip o .json) esportato da un'altra app di spese, se in formato compatibile, oppure da un CSV con data, tipo, categoria, descrizione, importo e, se vuoi, conto. I movimenti già presenti vengono saltati.</p>
+  <div class="actions" style="margin-top:6px"><button class="btn" id="pickext">Backup di un'altra app</button><button class="btn ghost" id="pickcsv">File CSV</button></div>
+  <div class="actions" style="margin-top:8px"><button class="btn ghost sm" id="tpl">Scarica modello CSV</button>${lastExt?'<button class="btn ghost sm" id="extmap">Tipi di conto importati</button>':''}</div></div>
  <div style="margin-top:18px"><div class="eyebrow">Esporta e backup</div><p class="note" style="margin:6px 0">I dati restano solo su questo dispositivo. Il backup completo contiene tutto (movimenti, buste paga, ETF, impostazioni) e si ripristina su un altro telefono; il CSV contiene solo i movimenti e si apre con Excel.</p>
   <div class="actions" style="margin-top:6px"><button class="btn" id="expjson">Scarica backup completo</button><button class="btn ghost" id="pickjson">Ripristina backup</button></div>
   <div class="actions" style="margin-top:8px"><button class="btn ghost" id="expcsv">Esporta movimenti CSV</button>${seedAvail?'<button class="btn ghost" id="reseed">Ricarica storico iniziale</button>':''}</div></div>
@@ -838,11 +867,11 @@ function settingsSheet(){const st=S.settings;
  const pick=(acc,fn)=>{const f=$('#fpick');f.accept=acc;f.onchange=async ev=>{const file=ev.target.files[0];ev.target.value='';if(file)fn(file)};f.click()};
  $('#thseg2').onclick=e=>{const b=e.target.closest('[data-th]');if(!b)return;st.theme=b.dataset.th;save();applyTheme();$$('#thseg2 button').forEach(x=>x.setAttribute('aria-pressed',x===b));render()};
  $('#stname').onchange=e=>{st.name=e.target.value.trim();save();render()};$('#stcard').onchange=e=>{st.cardCat=e.target.value.trim();save()};
- $('#accl2').onchange=e=>{st.accounts=e.target.value.split(',').map(x=>x.trim()).filter(Boolean);save();toast('Conti salvati')};
+ $('#goacc2').onclick=()=>accountsSheet();
  $('#goq').onclick=quoteSheet;
- $('#pickivy').onclick=()=>pick('.zip,.json,application/zip',importIvy);$('#pickcsv').onclick=()=>pick('.csv,.txt,text/csv',importCSVFile);$('#pickjson').onclick=()=>pick('.json,application/json',restoreFile);
- if($('#ivymap'))$('#ivymap').onclick=()=>ivyMapSheet(lastIvy,()=>{closeSheet();toast('Tipi di conto salvati per le prossime importazioni')});
- $('#tpl').onclick=()=>offerFile('modello-movimenti.csv','﻿data;tipo;categoria;descrizione;importo\r\n2026-11-27;entrata;Stipendio;Busta paga novembre;2750,00\r\n2026-11-03;uscita;Alimentari;Supermercato;64,30\r\n2026-11-05;giroconto;Giroconto;Prelievo bancomat;100,00\r\n2026-11-06;investimento;ETF;Acquisto ETF;2500,00\r\n','text/csv');
+ $('#pickext').onclick=()=>pick('.zip,.json,application/zip',importExt);$('#pickcsv').onclick=()=>pick('.csv,.txt,text/csv',importCSVFile);$('#pickjson').onclick=()=>pick('.json,application/json',restoreFile);
+ if($('#extmap'))$('#extmap').onclick=()=>extMapSheet(lastExt,()=>{closeSheet();toast('Tipi di conto salvati per le prossime importazioni')});
+ $('#tpl').onclick=()=>offerFile('modello-movimenti.csv','﻿data;tipo;categoria;descrizione;importo;conto\r\n2026-11-27;entrata;Stipendio;Busta paga novembre;2750,00;Conto corrente\r\n2026-11-03;uscita;Alimentari;Supermercato;64,30;Conto corrente\r\n2026-11-04;uscita;Ristoranti e bar;Caffè;1,50;Contanti\r\n2026-11-06;investimento;ETF;Acquisto ETF;2500,00;Conto corrente\r\n','text/csv');
  $('#expjson').onclick=()=>offerFile(`backup-conti-${today()}.json`,JSON.stringify({app:'conti',v:2,esportato:new Date().toISOString(),...S}),'application/json');
  $('#expcsv').onclick=()=>offerFile(`movimenti-${today()}.csv`,movCSV(),'text/csv');
  if($('#reseed'))$('#reseed').onclick=async()=>{const sd=await loadSeed();if(!sd){toast('Lo storico iniziale non è disponibile');return}if(await ask('Ricaricare lo storico iniziale?','I dati attuali verranno sostituiti con lo storico iniziale.','Ricarica',true)){S=norm(sd);save();applyTheme();go('home')}};
@@ -857,9 +886,9 @@ function quickFromHash(h){if(!QUICK[h])return false;try{history.replaceState(nul
 window.addEventListener('hashchange',()=>{const t=location.hash.slice(1);if(quickFromHash(t))return;if(TABS.includes(t)&&t!==tab){tab=t;render()}});
 addEventListener('scroll',()=>$('#topbar').classList.toggle('scrolled',scrollY>70),{passive:true});
 try{matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{applyTheme();render()})}catch(e){}
-applyTheme();render();startQuotes();quickFromHash(startHash);
+migrateAccounts();applyTheme();render();startQuotes();quickFromHash(startHash);
 loadSeed().then(sd=>{if(!sd)return;
- if(firstRun&&!S.movs.length){S=norm(sd);save();applyTheme();render();toast('Caricato il tuo storico: '+S.movs.length+' movimenti')}
+ if(firstRun&&!S.movs.length){S=norm(sd);migrateAccounts();save();applyTheme();render();toast('Caricato il tuo storico: '+S.movs.length+' movimenti')}
  else if((sd.rev||0)>(S.rev||0)){mergeSeed(sd);save();render();toast('Storico aggiornato',3000)}});
 </script>
 
