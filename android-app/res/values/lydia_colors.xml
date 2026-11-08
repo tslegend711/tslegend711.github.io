@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="lydia_w_text">#141A24</color>
+    <color name="lydia_w_muted">#5B6577</color>
+    <color name="lydia_w_gold">#8A6A12</color>
+    <color name="lydia_w_line">#1F141A24</color>
+    <color name="lydia_w_pos">#0E9F5B</color>
+    <color name="lydia_w_neg">#D92D20</color>
+</resources>

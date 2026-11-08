@@ -10,7 +10,6 @@ import org.json.JSONObject;
 
 /** Widget Investimenti: valore totale, guadagno e fino a tre ETF o azioni. */
 public class LydiaInvWidgetProvider extends AppWidgetProvider {
-    static final int POS = 0xFF3DD68C, NEG = 0xFFF07178, MUTED = 0xFFB4BCCD;
     static final int[] ROW = {R.id.iv_r1, R.id.iv_r2, R.id.iv_r3};
     static final int[] NAME = {R.id.iv_n1, R.id.iv_n2, R.id.iv_n3};
     static final int[] PRICE = {R.id.iv_p1, R.id.iv_p2, R.id.iv_p3};
@@ -21,8 +20,8 @@ public class LydiaInvWidgetProvider extends AppWidgetProvider {
         for (int id : ids) manager.updateAppWidget(id, build(context));
     }
 
-    static int color(int sign) {
-        return sign > 0 ? POS : sign < 0 ? NEG : MUTED;
+    static int color(Context c, int sign) {
+        return c.getColor(sign > 0 ? R.color.lydia_w_pos : sign < 0 ? R.color.lydia_w_neg : R.color.lydia_w_muted);
     }
 
     static RemoteViews build(Context c) {
@@ -32,13 +31,16 @@ public class LydiaInvWidgetProvider extends AppWidgetProvider {
         if (j == null) {
             v.setTextViewText(R.id.iv_total, "Apri Lydia");
             v.setTextViewText(R.id.iv_gain, "");
+            v.setInt(R.id.iv_gain, "setBackgroundResource", 0);
             v.setTextViewText(R.id.iv_upd, "");
             for (int r : ROW) v.setViewVisibility(r, View.GONE);
             return v;
         }
         v.setTextViewText(R.id.iv_total, j.optString("total", ""));
         v.setTextViewText(R.id.iv_gain, j.optString("gain", ""));
-        v.setTextColor(R.id.iv_gain, color(j.optInt("sign", 0)));
+        int sg = j.optInt("sign", 0);
+        v.setTextColor(R.id.iv_gain, color(c, sg));
+        v.setInt(R.id.iv_gain, "setBackgroundResource", sg < 0 ? R.drawable.lydia_chip_neg : R.drawable.lydia_chip_pos);
         v.setTextViewText(R.id.iv_upd, j.optString("upd", ""));
         JSONArray rows = j.optJSONArray("rows");
         for (int i = 0; i < ROW.length; i++) {
@@ -51,7 +53,7 @@ public class LydiaInvWidgetProvider extends AppWidgetProvider {
             v.setTextViewText(NAME[i], r.optString("n", ""));
             v.setTextViewText(PRICE[i], r.optString("p", ""));
             v.setTextViewText(GAIN[i], r.optString("g", ""));
-            v.setTextColor(GAIN[i], color(r.optInt("s", 0)));
+            v.setTextColor(GAIN[i], color(c, r.optInt("s", 0)));
         }
         return v;
     }

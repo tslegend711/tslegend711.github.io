@@ -49,7 +49,7 @@ public class LydiaWidgetProvider extends AppWidgetProvider {
         JSONObject j = data(c, "mov");
         v.setTextViewText(R.id.w_title, j != null ? j.optString("title", "Questo mese") : "Lydia");
         v.setTextViewText(R.id.w_total, j != null ? j.optString("total", "") : "Tocca per aprire");
-        if (j != null) v.setTextColor(R.id.w_total, j.optBoolean("neg", false) ? 0xFFF07178 : 0xFFFFFFFF);
+        if (j != null) v.setTextColor(R.id.w_total, c.getColor(j.optBoolean("neg", false) ? R.color.lydia_w_neg : R.color.lydia_w_text));
         v.setOnClickPendingIntent(R.id.w_root, link(c, "movimenti", 10));
         v.setOnClickPendingIntent(R.id.w_out, link(c, "nuova-spesa", 11));
         v.setOnClickPendingIntent(R.id.w_in, link(c, "nuova-entrata", 12));
