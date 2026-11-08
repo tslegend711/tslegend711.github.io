@@ -10,7 +10,7 @@ import android.net.Uri;
 import android.widget.RemoteViews;
 import org.json.JSONObject;
 
-/** Widget Movimenti: saldo del mese, entrate e uscite, pulsanti Spesa, Entrata, Giroconto. */
+/** Widget Movimenti, su una riga: saldo del mese e pulsanti spesa, entrata, giroconto. */
 public class LydiaWidgetProvider extends AppWidgetProvider {
     static final String PREFS = "lydia_widget";
 
@@ -47,10 +47,8 @@ public class LydiaWidgetProvider extends AppWidgetProvider {
     static RemoteViews build(Context c) {
         RemoteViews v = new RemoteViews(c.getPackageName(), R.layout.lydia_widget);
         JSONObject j = data(c, "mov");
-        v.setTextViewText(R.id.w_title, j != null ? j.optString("title", "Lydia · questo mese") : "Lydia · questo mese");
-        v.setTextViewText(R.id.w_total, j != null ? j.optString("total", "") : "Apri Lydia");
-        v.setTextViewText(R.id.w_lines, j != null ? j.optString("lines", "") : "Il riepilogo compare dopo la prima apertura");
-        v.setTextViewText(R.id.w_upd, j != null ? j.optString("upd", "") : "");
+        v.setTextViewText(R.id.w_title, j != null ? j.optString("title", "Questo mese") : "Lydia");
+        v.setTextViewText(R.id.w_total, j != null ? j.optString("total", "") : "Tocca per aprire");
         if (j != null) v.setTextColor(R.id.w_total, j.optBoolean("neg", false) ? 0xFFF07178 : 0xFFFFFFFF);
         v.setOnClickPendingIntent(R.id.w_root, link(c, "movimenti", 10));
         v.setOnClickPendingIntent(R.id.w_out, link(c, "nuova-spesa", 11));

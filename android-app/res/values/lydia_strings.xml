@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="lydia_widget_desc">Movimenti: entrate e uscite del mese, pulsanti per spesa, entrata e giroconto</string>
-    <string name="lydia_inv_widget_desc">Investimenti: valore, guadagno e prezzo di ETF e azioni</string>
+    <string name="lydia_widget_desc">Aggiungi spese, entrate e giroconti con un tocco</string>
+    <string name="lydia_inv_widget_desc">Come vanno i tuoi ETF e le tue azioni</string>
 </resources>

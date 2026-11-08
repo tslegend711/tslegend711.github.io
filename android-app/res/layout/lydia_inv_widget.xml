@@ -5,7 +5,10 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="@drawable/lydia_widget_bg"
-    android:padding="14dp">
+    android:paddingStart="12dp"
+    android:paddingEnd="12dp"
+    android:paddingTop="10dp"
+    android:paddingBottom="8dp">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -13,7 +16,7 @@
         android:orientation="horizontal"
         android:gravity="center_vertical">
         <ImageView android:layout_width="18dp" android:layout_height="18dp" android:src="@mipmap/ic_launcher" android:contentDescription="Lydia" />
-        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="6dp" android:text="Lydia · investimenti" android:textColor="#E3BC4A" android:textSize="12sp" android:textStyle="bold" />
+        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="6dp" android:text="Investimenti" android:textColor="#E3BC4A" android:textSize="12sp" android:textStyle="bold" />
         <TextView android:id="@+id/iv_upd" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#8A93A8" android:textSize="11sp" />
     </LinearLayout>
 
@@ -23,17 +26,17 @@
         android:layout_marginTop="4dp"
         android:orientation="horizontal"
         android:gravity="bottom">
-        <TextView android:id="@+id/iv_total" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:textColor="#FFFFFF" android:textSize="24sp" android:textStyle="bold" android:maxLines="1" />
+        <TextView android:id="@+id/iv_total" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:textColor="#FFFFFF" android:textSize="20sp" android:textStyle="bold" android:maxLines="1" />
         <TextView android:id="@+id/iv_gain" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:textColor="#B4BCCD" android:textSize="13sp" android:textStyle="bold" />
     </LinearLayout>
 
-    <View android:layout_width="match_parent" android:layout_height="1dp" android:layout_marginTop="6dp" android:background="#33E3BC4A" />
+    <View android:layout_width="match_parent" android:layout_height="1dp" android:layout_marginTop="4dp" android:layout_marginBottom="2dp" android:background="#33E3BC4A" />
 
     <LinearLayout
         android:id="@+id/iv_r1"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
+        android:layout_marginTop="2dp"
         android:orientation="horizontal"
         android:visibility="gone">
         <TextView android:id="@+id/iv_n1" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:textColor="#FFFFFF" android:textSize="13sp" android:textStyle="bold" android:maxLines="1" android:ellipsize="end" />
@@ -44,7 +47,7 @@
         android:id="@+id/iv_r2"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
+        android:layout_marginTop="2dp"
         android:orientation="horizontal"
         android:visibility="gone">
         <TextView android:id="@+id/iv_n2" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:textColor="#FFFFFF" android:textSize="13sp" android:textStyle="bold" android:maxLines="1" android:ellipsize="end" />
@@ -55,22 +58,11 @@
         android:id="@+id/iv_r3"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
+        android:layout_marginTop="2dp"
         android:orientation="horizontal"
         android:visibility="gone">
         <TextView android:id="@+id/iv_n3" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:textColor="#FFFFFF" android:textSize="13sp" android:textStyle="bold" android:maxLines="1" android:ellipsize="end" />
         <TextView android:id="@+id/iv_p3" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:textColor="#B4BCCD" android:textSize="13sp" />
         <TextView android:id="@+id/iv_g3" android:layout_width="62dp" android:layout_height="wrap_content" android:gravity="end" android:textColor="#B4BCCD" android:textSize="13sp" android:textStyle="bold" />
-    </LinearLayout>
-    <LinearLayout
-        android:id="@+id/iv_r4"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:orientation="horizontal"
-        android:visibility="gone">
-        <TextView android:id="@+id/iv_n4" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:textColor="#FFFFFF" android:textSize="13sp" android:textStyle="bold" android:maxLines="1" android:ellipsize="end" />
-        <TextView android:id="@+id/iv_p4" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:textColor="#B4BCCD" android:textSize="13sp" />
-        <TextView android:id="@+id/iv_g4" android:layout_width="62dp" android:layout_height="wrap_content" android:gravity="end" android:textColor="#B4BCCD" android:textSize="13sp" android:textStyle="bold" />
     </LinearLayout>
 </LinearLayout>

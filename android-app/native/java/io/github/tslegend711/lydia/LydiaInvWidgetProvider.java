@@ -8,13 +8,13 @@ import android.widget.RemoteViews;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-/** Widget Investimenti: valore totale, guadagno e fino a quattro ETF o azioni. */
+/** Widget Investimenti: valore totale, guadagno e fino a tre ETF o azioni. */
 public class LydiaInvWidgetProvider extends AppWidgetProvider {
     static final int POS = 0xFF3DD68C, NEG = 0xFFF07178, MUTED = 0xFFB4BCCD;
-    static final int[] ROW = {R.id.iv_r1, R.id.iv_r2, R.id.iv_r3, R.id.iv_r4};
-    static final int[] NAME = {R.id.iv_n1, R.id.iv_n2, R.id.iv_n3, R.id.iv_n4};
-    static final int[] PRICE = {R.id.iv_p1, R.id.iv_p2, R.id.iv_p3, R.id.iv_p4};
-    static final int[] GAIN = {R.id.iv_g1, R.id.iv_g2, R.id.iv_g3, R.id.iv_g4};
+    static final int[] ROW = {R.id.iv_r1, R.id.iv_r2, R.id.iv_r3};
+    static final int[] NAME = {R.id.iv_n1, R.id.iv_n2, R.id.iv_n3};
+    static final int[] PRICE = {R.id.iv_p1, R.id.iv_p2, R.id.iv_p3};
+    static final int[] GAIN = {R.id.iv_g1, R.id.iv_g2, R.id.iv_g3};
 
     @Override
     public void onUpdate(Context context, AppWidgetManager manager, int[] ids) {
