@@ -7,6 +7,6 @@
     "allowMixedContent": false,
     "captureInput": false,
     "webContentsDebuggingEnabled": false,
-    "adjustMarginsForEdgeToEdge": "auto"
+    "adjustMarginsForEdgeToEdge": "disable"
   }
 }

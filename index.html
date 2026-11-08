@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' https://api.twelvedata.com https://www.alphavantage.co; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'">
 <meta name="referrer" content="no-referrer">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="icon" type="image/svg+xml" href="icon.svg">
@@ -293,6 +293,8 @@ nav.tabs{background:rgba(255,255,255,.42);-webkit-backdrop-filter:blur(24px) sat
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .topbar.scrolled{border-bottom-color:rgba(255,255,255,.12)}}
 .homesearch{display:flex;align-items:center;gap:10px;width:100%;margin:0 0 14px;padding:13px 18px;border:1px solid var(--glass-line);border-radius:999px;background:var(--glass);-webkit-backdrop-filter:blur(22px) saturate(150%);backdrop-filter:blur(22px) saturate(150%);color:var(--muted);font:inherit;font-size:1rem;text-align:left;cursor:pointer}
 .homesearch svg{width:20px;height:20px;color:var(--gold)}
+.overlay{padding-bottom:var(--kb,0px);transition:padding-bottom .15s}
+.overlay .sheet{max-height:calc(92dvh - var(--kb,0px))}
 </style>
 </head>
 <body>
@@ -1403,6 +1405,8 @@ function drawEye(){const h=HID();$('#eyebtn').setAttribute('aria-pressed',h);$('
 $('#eyebtn').onclick=()=>{S.settings.hideAmounts=!S.settings.hideAmounts;save();drawEye();render();toast(S.settings.hideAmounts?'Importi nascosti':'Importi visibili',1800)};drawEye();
 applyCurrency();if(!S.settings.since){S.settings.since=today();save()}
 migrateAccounts();applyTheme();render();startQuotes();askPersist();
+/* tastiera aperta: la finestra sale sopra la tastiera invece di finirci sotto */
+if(window.visualViewport){const kb=()=>{const vv=visualViewport;const h=Math.max(0,Math.round(innerHeight-vv.height-vv.offsetTop));document.documentElement.style.setProperty('--kb',(h>60?h:0)+'px');if(h>60){const a=document.activeElement;if(a&&a.closest&&a.closest('#sheet'))setTimeout(()=>{try{a.scrollIntoView({block:'nearest'})}catch(e){}},60)}};visualViewport.addEventListener('resize',kb);visualViewport.addEventListener('scroll',kb)}
 if(NATIVE()&&CP('App')){CP('App').addListener('appUrlOpen',e=>openLink(e&&e.url));CP('App').getLaunchUrl().then(r=>{if(r&&r.url)setTimeout(()=>openLink(r.url),300)}).catch(()=>{})}
 if(NATIVE()&&CP('App'))CP('App').addListener('backButton',()=>{if($('#ov').classList.contains('open'))closeSheet();else if(tab!=='home')go('home');else CP('App').exitApp()});if(!quickFromHash(startHash))welcomeFlow();
 /* ridisegna i grafici solo se cambia la larghezza (la tastiera cambia solo l'altezza) e mai mentre stai scrivendo */

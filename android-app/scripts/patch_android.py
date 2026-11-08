@@ -35,5 +35,7 @@ if 'LydiaWidgetProvider' not in s:
            '        </receiver>\n')
     i = s.index('</application>')
     s = s[:i] + rec + '    ' + s[i:]
+    if 'windowSoftInputMode' not in s:
+        s = s.replace('android:name=".MainActivity"', 'android:name=".MainActivity"\n            android:windowSoftInputMode="adjustResize"', 1)
     m.write_text(s, encoding='utf-8')
 print('progetto Android aggiornato:', m)
