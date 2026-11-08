@@ -20,7 +20,7 @@
   --ink:#141A24; --muted:#5D6778; --faint:#8A93A3;
   --glass:rgba(255,255,255,.62); --glass-strong:rgba(255,255,255,.86); --glass-line:rgba(20,30,50,.09); --glass-hi:rgba(255,255,255,.7);
   --accent:#2F6BFF; --accent-ink:#FFFFFF; --accent-soft:rgba(47,107,255,.12);
-  --pos:#14915A; --neg:#D93D44; --warn:#D9662B; --info:#2F6BFF;
+  --pos:#14915A; --neg:#D93D44; --warn:#D9662B; --inc:#12B76A; --exp:#F04438; --info:#2F6BFF;
   --c1:#2F6BFF; --c2:#14A37F; --c3:#E08A1E; --c4:#C2417A; --c5:#7A5AE0; --c6:#2BA3C9; --c7:#8B9A2E; --c8:#9AA3B2;
   --shadow:0 10px 30px rgba(20,30,60,.08);
   --font:'SamsungOne','Samsung Sans',system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',sans-serif;
@@ -33,7 +33,7 @@
   --ink:#EAEFF7; --muted:#9AA5B8; --faint:#6D778A;
   --glass:rgba(24,29,40,.58); --glass-strong:rgba(22,27,37,.9); --glass-line:rgba(255,255,255,.08); --glass-hi:rgba(255,255,255,.06);
   --accent:#6B9BFF; --accent-ink:#0A0D13; --accent-soft:rgba(107,155,255,.16);
-  --pos:#43C98A; --neg:#FF6B70; --warn:#FF8F4D; --info:#6B9BFF;
+  --pos:#43C98A; --neg:#FF6B70; --warn:#FF8F4D; --inc:#32D583; --exp:#F97066; --info:#6B9BFF;
   --c1:#6B9BFF; --c2:#3FCFA4; --c3:#F2A54A; --c4:#EE76A8; --c5:#A48CFF; --c6:#5CC6E8; --c7:#B9C85A; --c8:#7F8899;
   --shadow:0 10px 30px rgba(0,0,0,.35); color-scheme:dark}}
 :root[data-theme="dark"]{
@@ -42,7 +42,7 @@
   --ink:#EAEFF7; --muted:#9AA5B8; --faint:#6D778A;
   --glass:rgba(24,29,40,.58); --glass-strong:rgba(22,27,37,.9); --glass-line:rgba(255,255,255,.08); --glass-hi:rgba(255,255,255,.06);
   --accent:#6B9BFF; --accent-ink:#0A0D13; --accent-soft:rgba(107,155,255,.16);
-  --pos:#43C98A; --neg:#FF6B70; --warn:#FF8F4D; --info:#6B9BFF;
+  --pos:#43C98A; --neg:#FF6B70; --warn:#FF8F4D; --inc:#32D583; --exp:#F97066; --info:#6B9BFF;
   --c1:#6B9BFF; --c2:#3FCFA4; --c3:#F2A54A; --c4:#EE76A8; --c5:#A48CFF; --c6:#5CC6E8; --c7:#B9C85A; --c8:#7F8899;
   --shadow:0 10px 30px rgba(0,0,0,.35); color-scheme:dark}
 *,*::before,*::after{box-sizing:border-box;border-radius:0}
@@ -461,8 +461,8 @@ function mk(id,spec){const el=document.getElementById(id);if(!el)return;const se
  const every=Math.max(1,Math.ceil(n/(W<420?5:8)));labels.forEach((l,i)=>{if(i%every===0)g+=`<text x="${X(i).toFixed(1)}" y="${H-6}" text-anchor="middle" class="ct">${esc(l)}</text>`});
  if(bars.length){const bw=spec.stacked?band*.62:band*.74/bars.length;
   for(let i=0;i<n;i++){let base=0;bars.forEach((x,k)=>{const v=x.data[i];if(v==null||!isFinite(v))return;
-   if(spec.stacked){const ya=Y(base+Math.max(0,v)),yb=Y(base);g+=`<rect x="${(X(i)-bw/2).toFixed(1)}" y="${ya.toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(0,yb-ya).toFixed(1)}" fill="${x.color}"/>`;base+=Math.max(0,v)}
-   else{const x0=X(i)-band*.37+bw*k;const ya=Y(Math.max(0,v)),yb=Y(Math.min(0,v));g+=`<rect x="${x0.toFixed(1)}" y="${ya.toFixed(1)}" width="${Math.max(1,bw-1.5).toFixed(1)}" height="${Math.max(.5,yb-ya).toFixed(1)}" fill="${x.color}"/>`}})}}
+   if(spec.stacked){const ya=Y(base+Math.max(0,v)),yb=Y(base);g+=`<rect x="${(X(i)-bw/2).toFixed(1)}" y="${ya.toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(0,yb-ya).toFixed(1)}" fill="${x.color}" rx="2"/>`;base+=Math.max(0,v)}
+   else{const x0=X(i)-band*.37+bw*k;const ya=Y(Math.max(0,v)),yb=Y(Math.min(0,v));g+=`<rect x="${x0.toFixed(1)}" y="${ya.toFixed(1)}" width="${Math.max(1,bw-1.5).toFixed(1)}" height="${Math.max(.5,yb-ya).toFixed(1)}" fill="${x.color}" rx="${Math.min(3,Math.max(1,bw/5)).toFixed(1)}"/>`}})}}
  for(const x of ser.filter(x=>x.type==='line')){const yf=x.y2?Y2:Y;let d='',pen=false;x.data.forEach((v,i)=>{if(v==null||!isFinite(v)){pen=false;return}d+=(pen?'L':'M')+X(i).toFixed(1)+' '+yf(v).toFixed(1);pen=true});
   g+=`<path d="${d}" fill="none" stroke="${x.color}" stroke-width="${x.w||2.2}" ${x.dash?'stroke-dasharray="5 4"':''} stroke-linejoin="round" stroke-linecap="round"/>`;
   if(x.dots)x.data.forEach((v,i)=>{if(v!=null&&isFinite(v))g+=`<rect x="${(X(i)-2.5).toFixed(1)}" y="${(yf(v)-2.5).toFixed(1)}" width="5" height="5" fill="${x.color}"/>`})}
@@ -548,7 +548,7 @@ function renderHome(){const main=$('#main');
  // trend
  const end=per.kind==='anno'?R.months[11]:per.kind==='mese'?R.months[0]:completeMonths();const ks=[];for(let i=11;i>=0;i--)ks.push(shiftK(end,-i));
  const md=ks.map(k=>agg(byMonth(k)));
- mk('ctrend',{aria:'Entrate e spese per mese',labels:ks.map(shortK),series:[{label:'Entrate',color:css('--gold'),data:md.map(x=>x.entrate)},{label:'Spese',color:css('--neg'),data:md.map(x=>x.netta)}]});
+ mk('ctrend',{aria:'Entrate e spese per mese',labels:ks.map(shortK),series:[{label:'Entrate',color:css('--inc'),data:md.map(x=>x.entrate)},{label:'Spese',color:css('--exp'),data:md.map(x=>x.netta)}]});
  if(pie.length)mk('cpie',{kind:'donut',aria:'Spese per categoria',labels:pie.map(x=>x[0]),values:pie.map(x=>x[1]),colors:pie.map(x=>catColor(x[0])),center:eur0(pieTot)});
 }
 
@@ -1053,7 +1053,7 @@ function fixBalSheet(a){const cur=Math.round(accBal(a)*100)/100;openSheet(`<h3>C
 
 /* ---------- privacy, backup, novità ---------- */
 const APP_VERSION='1.5.0';
-const CHANGELOG=[['1.5.0','8 novembre 2026',["Testi più semplici in tutta l'app","Barra in alto sempre leggibile mentre scorri","Pulsanti e selettori più sobri, grafico della Home più pulito","Widget Movimenti su una riga; widget Investimenti più basso","App Android: barre di sistema dello stesso colore dell'app","Barra in basso sospesa, con la sezione attiva evidenziata","Pulsante + rotondo, in vetro dorato lucido","Angoli arrotondati come su Android","Colori: l'oro indica le cose positive (entrate, stipendio), il rosso le spese"]],
+const CHANGELOG=[['1.5.0','8 novembre 2026',["Testi più semplici in tutta l'app","Barra in alto sempre leggibile mentre scorri","Pulsanti e selettori più sobri, grafico della Home più pulito","Widget Movimenti su una riga; widget Investimenti più basso","App Android: barre di sistema dello stesso colore dell'app","Barra in basso sospesa, con la sezione attiva evidenziata","Pulsante + rotondo, in vetro dorato lucido","Angoli arrotondati come su Android","Grafico della Home: entrate in verde e spese in rosso, con barre arrotondate"]],
  ['1.4.0','8 novembre 2026',["App Android: widget Movimenti, con entrate e uscite del mese e i pulsanti Spesa, Entrata e Giroconto","App Android: widget Investimenti, con valore, guadagno e prezzo di ETF e azioni","App Android: icona di Lydia, anche adattiva e a tema"]],
  ['1.3.0','8 novembre 2026',["Backup su Drive con un tocco, dal menu di condivisione","Backup protetto da password (cifratura AES-256 sul telefono)","Lydia chiede a Chrome di non cancellare mai i suoi dati da sola"]],
  ['1.2.4','8 novembre 2026',["Modalità privacy: l'occhio in alto nasconde o mostra tutti gli importi","Barra in basso: la sezione attiva è in oro, senza riquadro"]],
