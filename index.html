@@ -1025,8 +1025,9 @@ function fixBalSheet(a){const cur=Math.round(accBal(a)*100)/100;openSheet(`<h3>C
  $('#fxx').onclick=closeSheet;$('#fxs').onclick=()=>{const v=parseNum($('#fxv').value);if(isNaN(v)){toast('Scrivi un importo');return}setAccBal(a,v);save();closeSheet();render();toast(`Saldo di ${a.name} aggiornato`)}}
 
 /* ---------- privacy, backup, novità ---------- */
-const APP_VERSION='1.2.4';
-const CHANGELOG=[['1.2.4','8 novembre 2026',["Modalità privacy: l'occhio in alto nasconde o mostra tutti gli importi","Barra in basso: la sezione attiva è in oro, senza riquadro"]],
+const APP_VERSION='1.3.0';
+const CHANGELOG=[['1.3.0','8 novembre 2026',["Backup su Drive con un tocco, dal menu di condivisione","Backup protetto da password (cifratura AES-256 sul telefono)","Lydia chiede a Chrome di non cancellare mai i suoi dati da sola"]],
+ ['1.2.4','8 novembre 2026',["Modalità privacy: l'occhio in alto nasconde o mostra tutti gli importi","Barra in basso: la sezione attiva è in oro, senza riquadro"]],
  ['1.2.3','8 novembre 2026',["Ogni movimento chiede da quale conto parte o su quale conto arriva, con il saldo di ciascuno","Import da backup: i conti di investimento diventano ETF o fondi in Patrimonio, con quote e prezzo di carico","Nuovo movimento: Spesa in rosso, Entrata in verde, Giroconto in oro","Categorie: campo di ricerca e le 12 più usate in vista","Patrimonio: la liquidità è in oro nel grafico"]],
  ['1.2.2','8 novembre 2026',["Busta paga: scegli il conto e la data dell'accredito, lo stipendio e i rimborsi entrano come movimenti","Se non hai ancora un conto, Lydia te lo fa creare prima di leggere la busta paga","Mentre legge il PDF compare una finestra di attesa; se qualcosa va storto te lo dice","Un movimento con data precedente all'ultimo saldo verificato non altera il saldo"]],
  ['1.2.1','8 novembre 2026',["La tastiera non si chiude più mentre scrivi","Riserva di emergenza: puoi scrivere tu la cifra","Gli aggiornamenti arrivano subito, senza aspettare la cache","Nuova schermata iniziale: tre passi numerati e un solo pulsante per importare"]],
@@ -1039,14 +1040,43 @@ function privacySheet(first,then){const s=S.settings;openSheet(`<h3>${first?'Pri
  <div class="priv"><span class="k">1</span><div><b>I tuoi dati restano su questo telefono</b><p class="note" style="margin:2px 0 0">Movimenti, conti, buste paga e impostazioni sono salvati solo nella memoria del dispositivo. Non c'è un account e non c'è un server di Lydia.</p></div></div>
  <div class="priv"><span class="k">2</span><div><b>Agli sviluppatori non arriva nulla</b><p class="note" style="margin:2px 0 0">Nessuna statistica, nessun tracciamento, nessuna pubblicità. I PDF e i backup che carichi vengono letti sul telefono e non partono verso nessuno.</p></div></div>
  <div class="priv"><span class="k">3</span><div><b>Funziona offline</b><p class="note" style="margin:2px 0 0">Va in rete solo per scaricare gli aggiornamenti dell'app e, se attivi le quotazioni automatiche, per chiedere il prezzo degli ETF: al fornitore arriva il simbolo del titolo, mai i tuoi importi.</p></div></div>
- <div class="priv"><span class="k">4</span><div><b>Fai un backup ogni tanto</b><p class="note" style="margin:2px 0 0">Se disinstalli l'app o cancelli i dati del browser, i dati spariscono e nessuno può recuperarli. Scarica il backup e tienilo in un posto sicuro: il file non è cifrato, non condividerlo.</p>
+ <div class="priv"><span class="k">4</span><div><b>Fai un backup ogni tanto</b><p class="note" style="margin:2px 0 0">Se disinstalli l'app o cancelli i dati del browser, i dati spariscono e nessuno può recuperarli. Fai un backup e salvalo su Drive: puoi proteggerlo con una password.</p>
   <label class="f" style="margin-top:8px">Ricordamelo ogni<select id="pvb">${[[7,'settimana'],[14,'2 settimane'],[30,'mese'],[0,'mai']].map(([v,l])=>`<option value="${v}" ${+s.backupEvery===v?'selected':''}>${l}</option>`).join('')}</select></label></div></div>
  <div class="actions"><button class="btn gold" id="pvok">${first?'Ho capito, iniziamo':'Fatto'}</button></div>`);
  $('#pvok').onclick=()=>{const st=S.settings;st.privacyOk=true;st.backupEvery=+$('#pvb').value;save();closeSheet();render();if(then)then()}}
 function backupDue(){const s=S.settings;if(!+s.backupEvery||!S.movs.length)return false;const ref=s.lastBackup||s.since;if(!ref)return false;if(s.backupSnooze&&daysSince(s.backupSnooze)<3)return false;return daysSince(ref)>=+s.backupEvery}
 function backupBanner(){if(!backupDue())return '';const s=S.settings;return `<section class="blk glass card goldline"><h2>È ora di un backup</h2><p class="sub">${s.lastBackup?`L'ultimo è del ${fmtDate(s.lastBackup)}.`:'Non hai ancora scaricato un backup.'} I dati sono solo su questo telefono.</p><div class="actions"><button class="btn ghost sm" id="bklater">Più tardi</button><button class="btn gold sm" id="bknow">Scarica backup</button></div></section>`}
 function bindBackupBanner(){if(!$('#bknow'))return;$('#bknow').onclick=doBackup;$('#bklater').onclick=()=>{S.settings.backupSnooze=today();save();render()}}
-async function doBackup(){const ok=await offerFile(`backup-lydia-${today()}.json`,JSON.stringify({app:'lydia',v:2,versione:APP_VERSION,esportato:new Date().toISOString(),...S}),'application/json');if(ok){S.settings.lastBackup=today();S.settings.backupSnooze=null;save();render()}}
+/* ---------- backup sicuro ---------- */
+const NATIVE=()=>!!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform());
+const CP=n=>window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins[n];
+let persisted=null;
+async function askPersist(){try{if(navigator.storage&&navigator.storage.persist){persisted=await navigator.storage.persisted();if(!persisted)persisted=await navigator.storage.persist()}}catch(e){}return persisted}
+const b64e=u=>{let s='';for(let i=0;i<u.length;i+=8192)s+=String.fromCharCode.apply(null,u.subarray(i,i+8192));return btoa(s)};
+const b64d=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+async function pwKey(pw,salt,it){const base=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveKey']);return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:it,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,['encrypt','decrypt'])}
+async function encryptJSON(text,pw){const salt=crypto.getRandomValues(new Uint8Array(16)),iv=crypto.getRandomValues(new Uint8Array(12)),it=310000;const k=await pwKey(pw,salt,it);
+ const ct=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv},k,new TextEncoder().encode(text)));return JSON.stringify({app:'lydia',cifrato:'AES-256-GCM',kdf:'PBKDF2-SHA256',it,salt:b64e(salt),iv:b64e(iv),dati:b64e(ct)})}
+async function decryptJSON(j,pw){const k=await pwKey(pw,b64d(j.salt),j.it||310000);const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:b64d(j.iv)},k,b64d(j.dati));return new TextDecoder().decode(pt)}
+function askPassword(title,text){return new Promise(res=>{openSheet(`<h3>${esc(title)}</h3><p class="note" style="margin-top:-6px">${esc(text)}</p><label class="f" style="margin-top:12px">Password<input id="pwi" type="password" autocomplete="current-password"></label><div class="actions"><button class="btn ghost" id="pwx">Annulla</button><button class="btn gold" id="pwo">Continua</button></div>`);
+ setTimeout(()=>{try{$('#pwi').focus()}catch(e){}},80);$('#pwx').onclick=()=>{closeSheet();res(null)};$('#pwo').onclick=()=>{const v=$('#pwi').value;closeSheet();res(v||null)};$('#pwi').onkeydown=e=>{if(e.key==='Enter')$('#pwo').click()}})}
+async function shareFile(name,text,mime){
+ if(NATIVE()&&CP('Filesystem')&&CP('Share')){const w=await CP('Filesystem').writeFile({path:name,data:text,directory:'CACHE',encoding:'utf8'});await CP('Share').share({title:'Backup di Lydia',files:[w.uri]});return true}
+ const f=new File([text],name,{type:mime||'application/json'});if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:'Backup di Lydia'});return true}return null}
+async function saveFileNative(name,text){if(!(NATIVE()&&CP('Filesystem')))return null;await CP('Filesystem').writeFile({path:'Lydia/'+name,data:text,directory:'DOCUMENTS',encoding:'utf8',recursive:true});toast('Salvato in Documenti/Lydia',4000);return true}
+function backupText(){return JSON.stringify({app:'lydia',v:2,versione:APP_VERSION,esportato:new Date().toISOString(),...S})}
+function doBackup(){const canShare=NATIVE()||(navigator.canShare&&navigator.canShare({files:[new File(['x'],'x.json',{type:'application/json'})]}));
+ openSheet(`<h3>Backup</h3><p class="note" style="margin-top:-6px">Il backup contiene tutti i tuoi dati. Mettilo fuori dal telefono, per esempio su Drive: se cancelli l'app o i dati di Chrome lo ripristini da lì.</p>
+ <label class="check" style="margin-top:12px"><input type="checkbox" id="bkenc"> Proteggi con una password</label>
+ <div id="bkpw" hidden><div class="f2"><label class="f">Password<input id="bkp1" type="password" autocomplete="new-password"></label><label class="f">Ripeti la password<input id="bkp2" type="password" autocomplete="new-password"></label></div>
+ <p class="note" style="margin:-4px 0 8px">Cifratura AES-256 fatta sul telefono. Se dimentichi la password il backup non si può aprire: nessuno può recuperarla.</p></div>
+ <div class="actions">${canShare?'<button class="btn gold" id="bkshare">Salva su Drive o condividi</button>':''}<button class="btn ${canShare?'ghost':'gold'}" id="bkdl">Scarica sul telefono</button></div>`);
+ $('#bkenc').onchange=e=>{$('#bkpw').hidden=!e.target.checked};
+ const build=async()=>{let text=backupText(),name=`backup-lydia-${today()}.json`;if($('#bkenc').checked){const a=$('#bkp1').value,b=$('#bkp2').value;if(a.length<8){toast('Usa una password di almeno 8 caratteri');return null}if(a!==b){toast('Le due password non coincidono');return null}text=await encryptJSON(text,a);name=`backup-lydia-${today()}-cifrato.json`}return{text,name}};
+ const done=()=>{S.settings.lastBackup=today();S.settings.backupSnooze=null;save();closeSheet();render()};
+ if($('#bkshare'))$('#bkshare').onclick=async()=>{const r=await build();if(!r)return;try{const ok=await shareFile(r.name,r.text,'application/json');if(ok){done();toast('Backup condiviso: controlla che sia arrivato su Drive',4500)}else toast('Condivisione non disponibile qui: usa Scarica')}catch(e){if(e&&e.name==='AbortError')toast('Condivisione annullata');else toast('Non riesco a condividere il file',4000)}};
+ $('#bkdl').onclick=async()=>{const r=await build();if(!r)return;let ok=null;try{ok=await saveFileNative(r.name,r.text)}catch(e){ok=null}if(ok===null)ok=await offerFile(r.name,r.text,'application/json');if(ok)done()}}
+
 const TOUR=[
  {t:'home',h:'Benvenuto in Lydia',x:"Lydia tiene insieme stipendio, spese, conti e investimenti. Ti mostro le sezioni in trenta secondi: puoi saltare quando vuoi.",logo:true},
  {t:'home',h:'Home',x:"Quanto è entrato, quanto hai speso e quanto hai messo da parte, per mese, per anno o negli ultimi 12 mesi. Sotto trovi dove vanno i soldi, per categoria.",i:'<path d="M3 11l9-7 9 7v9H3z"/><path d="M9 20v-6h6v6"/>'},
@@ -1137,7 +1167,7 @@ async function importAny(file){if(Array.isArray(file)){const pdf=file.filter(f=>
  if(isZip(head))return importExt(file);if(isPDF(head))return importPayslips([file]);
  const t=(await readText(file.slice(0,4096))).replace(/^﻿/,'').trimStart();
  if(t[0]==='{'||head[0]===0xFF||head[0]===0xFE){let full;try{full=JSON.parse((await readText(file)).replace(/^﻿/,''))}catch(e){try{full=JSON.parse(decodeJSONBytes(new Uint8Array(await file.arrayBuffer())))}catch(e2){toast('Il file JSON non è leggibile',4000);return}}
-  if(full&&Array.isArray(full.movs))return restoreFile(file);if(full&&Array.isArray(full.transactions))return importExt(file);toast('Formato JSON non riconosciuto',4000);return}
+  if(full&&(Array.isArray(full.movs)||full.cifrato))return restoreFile(file);if(full&&Array.isArray(full.transactions))return importExt(file);toast('Formato JSON non riconosciuto',4000);return}
  if(/\.(xlsx?|ods|numbers)$/i.test(file.name)){toast('È un foglio di calcolo: esportalo in CSV e riprova',5000);return}
  return importCSVFile(file)}
 const EXT_KINDS=[['cash','Conto / liquidità'],['inv','Investimenti'],['skip','Ignora']];
@@ -1205,6 +1235,7 @@ async function importCSVFile(file){if(/\.(xlsx?|ods|numbers)$/i.test(file.name))
  if(!fresh.length){toast(`Nessun movimento nuovo (${dup} già presenti)`,5000);return}
  if(await ask(`Importare ${fresh.length} movimenti?`,`${dup?dup+' già presenti verranno saltati. ':''}${res.skipped?res.skipped+' righe senza data o importo verranno ignorate.':''}`,'Importa')){S.movs.push(...fresh);save();mf={q:'',t:'all',m:'all',c:'all',a:'all'};go('movimenti');toast(`Importati ${fresh.length} movimenti`)}}
 async function restoreFile(file){let j;try{j=JSON.parse(await readText(file))}catch(e){toast('Il file non è un backup valido');return}
+ if(j&&j.cifrato&&j.dati){for(let k=0;k<3;k++){const pw=await askPassword('Backup protetto',k?'Password sbagliata, riprova.':'Scrivi la password usata per questo backup.');if(!pw)return;try{j=JSON.parse(await decryptJSON(j,pw));break}catch(e){if(k===2){toast('Password sbagliata',4000);return}}}}
  if(!j||!Array.isArray(j.movs)){toast('Il file non è un backup di questa app');return}
  if(await ask('Ripristinare il backup?',`Contiene ${j.movs.length} movimenti e ${(j.etfs||[]).length} ETF. I dati attuali verranno sostituiti.`,'Ripristina',true)){const keep=S.settings;S=norm(j);S.settings.privacyOk=true;S.settings.seenVersion=APP_VERSION;S.settings.lastBackup=S.settings.lastBackup||today();applyCurrency();migrateAccounts();save();applyTheme();go('home');startQuotes();toast('Backup ripristinato')}}
 
@@ -1229,9 +1260,9 @@ function settingsSheet(){const st=S.settings;const sec=(t,h)=>`<div style="margi
   <label class="f" style="margin-top:10px">Categoria del saldo carta di credito<input id="stcard" value="${esc(st.cardCat||'')}" placeholder="Per esempio Carta di credito"></label>`)}
  ${sec('Conti e riserva',`<div class="actions" style="margin-top:6px;flex-direction:column"><button class="btn ghost" id="goacc2">Conti: ${S.accounts.length?esc(S.accounts.map(a=>a.name).join(', ')):'nessuno'}</button><button class="btn ghost" id="gores">Riserva di emergenza: ${st.reserve>0?eur0(st.reserve):'da calcolare'}</button><button class="btn ghost" id="goaccant">Accantonamenti, ordine minimo e commissioni</button></div>`)}
  ${sec('Quotazioni',`<div class="actions" style="margin-top:6px"><button class="btn ghost" id="goq">Quotazioni automatiche: ${st.provider==='none'?'spente':PROV[st.provider].name}</button></div>`)}
- ${sec('Backup e promemoria',`<p class="note" style="margin:6px 0">${st.lastBackup?`Ultimo backup: ${fmtDate(st.lastBackup)}.`:'Non hai ancora scaricato un backup.'} Il backup contiene tutto e si ripristina su un altro telefono; il CSV contiene solo i movimenti e si apre con Excel.</p>
+ ${sec('Backup e promemoria',`<div class="kv" style="border:0"><span>Protezione dalla pulizia automatica</span><b id="perst">…</b></div><p class="note" style="margin:6px 0">${st.lastBackup?`Ultimo backup: ${fmtDate(st.lastBackup)}.`:'Non hai ancora scaricato un backup.'} Il backup contiene tutto e si ripristina su un altro telefono; il CSV contiene solo i movimenti e si apre con Excel.</p>
   <label class="f">Ricordami il backup ogni<select id="stbk">${[[7,'settimana'],[14,'2 settimane'],[30,'mese'],[0,'mai']].map(([v,l])=>`<option value="${v}" ${+st.backupEvery===v?'selected':''}>${l}</option>`).join('')}</select></label>
-  <div class="actions" style="margin-top:6px"><button class="btn gold" id="expjson">Scarica backup completo</button><button class="btn ghost" id="pickjson">Ripristina backup</button></div>
+  <div class="actions" style="margin-top:6px"><button class="btn gold" id="expjson">Fai un backup</button><button class="btn ghost" id="pickjson">Ripristina backup</button></div>
   <div class="actions" style="margin-top:8px"><button class="btn ghost" id="expcsv">Esporta movimenti CSV</button>${seedAvail?'<button class="btn ghost" id="reseed">Ricarica storico iniziale</button>':''}</div>`)}
  ${sec('Importa',`<p class="note" style="margin:6px 0">Scegli il file da qualsiasi cartella o da Drive: backup .zip o .json di un'altra app di spese, CSV con data, tipo, categoria, descrizione, importo e conto, oppure le buste paga in PDF. Riconosco io il tipo di file; i movimenti già presenti vengono saltati.</p>
   <div class="actions" style="margin-top:6px"><button class="btn" id="pickany">Importa un file</button><button class="btn ghost" id="pickbp">Buste paga PDF</button></div>
@@ -1248,7 +1279,7 @@ function settingsSheet(){const st=S.settings;const sec=(t,h)=>`<div style="margi
  $('#pickany').onclick=()=>pickFiles('',importAny,true);$('#pickjson').onclick=()=>pickFiles('',importAny);$('#pickbp').onclick=()=>pickFiles('.pdf,application/pdf',importPayslips,true);
  if($('#extmap'))$('#extmap').onclick=()=>extMapSheet(lastExt,()=>{closeSheet();toast('Tipi di conto salvati per le prossime importazioni')});
  $('#tpl').onclick=()=>offerFile('modello-movimenti.csv','﻿data;tipo;categoria;descrizione;importo;conto\r\n2026-11-27;entrata;Stipendio;Busta paga novembre;2750,00;Conto corrente\r\n2026-11-03;uscita;Alimentari;Supermercato;64,30;Conto corrente\r\n2026-11-04;uscita;Ristoranti e bar;Caffè;1,50;Contanti\r\n2026-11-06;investimento;ETF;Acquisto ETF;2500,00;Conto corrente\r\n','text/csv');
- $('#expjson').onclick=doBackup;
+ $('#expjson').onclick=doBackup;(async()=>{const p=NATIVE()?true:await askPersist();const el=$('#perst');if(el)el.textContent=p?'attiva':'non concessa da Chrome';})();
  $('#expcsv').onclick=()=>offerFile(`movimenti-${today()}.csv`,movCSV(),'text/csv');
  if($('#reseed'))$('#reseed').onclick=async()=>{const sd=await loadSeed();if(!sd){toast('Lo storico iniziale non è disponibile');return}if(await ask('Ricaricare lo storico iniziale?','I dati attuali verranno sostituiti con lo storico iniziale.','Ricarica',true)){const keep=S.settings;S=norm(sd);for(const k of['privacyOk','seenVersion','since','backupEvery','lastBackup','currency'])S.settings[k]=keep[k];save();applyTheme();go('home')}};
  $('#wipe').onclick=async()=>{if(await ask('Cancellare tutti i dati?','Scarica prima un backup se vuoi conservarli. Non si può annullare.','Cancella tutto',true)){S=norm({settings:{theme:st.theme,currency:st.currency,privacyOk:true,seenVersion:APP_VERSION,since:today()}});applyCurrency();save();go('home');toast('Dati cancellati');setTimeout(welcomeFlow,400)}}}
@@ -1266,7 +1297,7 @@ $('#brand').innerHTML=LOGO(26)+'<span>Lydia</span><span class="ver">v'+APP_VERSI
 function drawEye(){const h=HID();$('#eyebtn').setAttribute('aria-pressed',h);$('#eyebtn').setAttribute('aria-label',h?'Mostra gli importi':'Nascondi gli importi');$('#eyeico').innerHTML=h?'<path d="M3 3l18 18"/><path d="M10.6 5.1A10 10 0 0 1 12 5c6.5 0 10 7 10 7a17 17 0 0 1-3.2 4.2M6.6 6.6C3.7 8.5 2 12 2 12s3.5 7 10 7c1.9 0 3.5-.6 4.9-1.4"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/>':'<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>'}
 $('#eyebtn').onclick=()=>{S.settings.hideAmounts=!S.settings.hideAmounts;save();drawEye();render();toast(S.settings.hideAmounts?'Importi nascosti':'Importi visibili',1800)};drawEye();
 applyCurrency();if(!S.settings.since){S.settings.since=today();save()}
-migrateAccounts();applyTheme();render();startQuotes();if(!quickFromHash(startHash))welcomeFlow();
+migrateAccounts();applyTheme();render();startQuotes();askPersist();if(!quickFromHash(startHash))welcomeFlow();
 /* ridisegna i grafici solo se cambia la larghezza (la tastiera cambia solo l'altezza) e mai mentre stai scrivendo */
 let lastW=innerWidth;addEventListener('resize',()=>{clearTimeout(window.__rz);window.__rz=setTimeout(()=>{if(Math.abs(innerWidth-lastW)<2)return;const ae=document.activeElement;if(ae&&/^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName))return;lastW=innerWidth;if(!$('#ov').classList.contains('open'))render()},250)});
 loadSeed().then(sd=>{if(!sd)return;
