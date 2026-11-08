@@ -42,6 +42,11 @@ if 'LydiaWidgetProvider' not in s:
 g = root / 'android' / 'app' / 'build.gradle'
 gs = g.read_text(encoding='utf-8')
 if 'androidx.biometric' not in gs:
-    gs = gs.replace('dependencies {', 'dependencies {\n    implementation "androidx.biometric:biometric:1.1.0"\n    implementation "com.google.mlkit:text-recognition:16.0.1"', 1)
+    gs = gs.replace('dependencies {', 'dependencies {\n    implementation "androidx.biometric:biometric:1.1.0"\n    implementation "com.google.android.gms:play-services-mlkit-text-recognition:19.0.1"', 1)
     g.write_text(gs, encoding='utf-8')
+# lettura delle foto: il modello lo scarica Google Play, l'app resta leggera
+ms = m.read_text(encoding='utf-8')
+if 'com.google.mlkit.vision.DEPENDENCIES' not in ms:
+    ms = ms.replace('</application>', '    <meta-data android:name="com.google.mlkit.vision.DEPENDENCIES" android:value="ocr" />\n    </application>', 1)
+    m.write_text(ms, encoding='utf-8')
 print('progetto Android aggiornato:', m)
