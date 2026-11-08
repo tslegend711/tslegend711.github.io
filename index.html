@@ -1,7 +1,8 @@
 <!doctype html>
-<html lang="it">
+<html lang="it" translate="no">
 <head>
 <meta charset="utf-8">
+<meta name="google" content="notranslate">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' https://api.twelvedata.com https://www.alphavantage.co; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">
@@ -295,6 +296,9 @@ nav.tabs{background:rgba(255,255,255,.42);-webkit-backdrop-filter:blur(24px) sat
 .homesearch svg{width:20px;height:20px;color:var(--gold)}
 .overlay{padding-bottom:var(--kb,0px);transition:padding-bottom .15s}
 .overlay .sheet{max-height:calc(92dvh - var(--kb,0px))}
+/* come un'app: toccando le scritte non si selezionano e non compaiono traduttore o ricerca */
+body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+input,textarea,select,[contenteditable]{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
 </style>
 </head>
 <body>
@@ -1251,7 +1255,7 @@ let wTimer;function syncWidget(){if(!(window.Capacitor&&window.Capacitor.isNativ
 function syncBars(){const P=window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform()&&window.Capacitor.Plugins&&window.Capacitor.Plugins.LydiaWidget;if(!P||!P.setBars)return;
  const dark=document.documentElement.getAttribute('data-theme')==='dark'||(!document.documentElement.getAttribute('data-theme')&&matchMedia('(prefers-color-scheme: dark)').matches);const c=(css('--bg')||(dark?'#0A0D13':'#EEF1F6')).trim();
  P.setBars({color:/^#[0-9a-f]{6}$/i.test(c)?c:(dark?'#0A0D13':'#EEF1F6'),light:!dark}).catch(()=>{})}
-{const _at=applyTheme;applyTheme=function(){_at();syncBars()}}
+{document.documentElement.setAttribute('translate','no');document.documentElement.classList.add('notranslate');const _at=applyTheme;applyTheme=function(){_at();syncBars()}}
 function openLink(url){const k=String(url||'').replace(/^lydia:\/\//,'').replace(/[\/?#].*$/,'');if(QUICK[k])quickFromHash(k);else if(TABS.includes(k)){closeSheet();go(k)}}
 /* ---------- backup sicuro ---------- */
 const NATIVE=()=>!!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform());
