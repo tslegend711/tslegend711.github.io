@@ -1180,7 +1180,8 @@ try{matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{ap
 $('#brand').innerHTML=LOGO(26)+'<span>Lydia</span><span class="ver">v'+APP_VERSION+'</span>';$('#tipsbtn').onclick=()=>go(tab==='consigli'?'home':'consigli');
 applyCurrency();if(!S.settings.since){S.settings.since=today();save()}
 migrateAccounts();applyTheme();render();startQuotes();if(!quickFromHash(startHash))welcomeFlow();
-addEventListener('resize',()=>{clearTimeout(window.__rz);window.__rz=setTimeout(()=>{if(!$('#ov').classList.contains('open'))render()},250)});
+/* ridisegna i grafici solo se cambia la larghezza (la tastiera cambia solo l'altezza) e mai mentre stai scrivendo */
+let lastW=innerWidth;addEventListener('resize',()=>{clearTimeout(window.__rz);window.__rz=setTimeout(()=>{if(Math.abs(innerWidth-lastW)<2)return;const ae=document.activeElement;if(ae&&/^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName))return;lastW=innerWidth;if(!$('#ov').classList.contains('open'))render()},250)});
 loadSeed().then(sd=>{if(!sd)return;
  if(firstRun&&!S.movs.length){const keep=S.settings;S=norm(sd);for(const k of['privacyOk','seenVersion','since','backupEvery','reserveAsked'])S.settings[k]=keep[k];applyCurrency();migrateAccounts();save();applyTheme();render();toast('Caricato il tuo storico: '+S.movs.length+' movimenti')}
  else if((sd.rev||0)>(S.rev||0)){mergeSeed(sd);save();render();toast('Storico aggiornato',3000)}});
