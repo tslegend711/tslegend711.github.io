@@ -1027,7 +1027,7 @@ function fixBalSheet(a){const cur=Math.round(accBal(a)*100)/100;openSheet(`<h3>C
 
 /* ---------- privacy, backup, novità ---------- */
 const APP_VERSION='1.4.0';
-const CHANGELOG=[['1.4.0','8 novembre 2026',["App Android: widget per la schermata Home con il totale dei conti e i pulsanti Spesa, Entrata e Giroconto","App Android: icona di Lydia, anche adattiva e a tema"]],
+const CHANGELOG=[['1.4.0','8 novembre 2026',["App Android: widget Movimenti, con entrate e uscite del mese e i pulsanti Spesa, Entrata e Giroconto","App Android: widget Investimenti, con valore, guadagno e prezzo di ETF e azioni","App Android: icona di Lydia, anche adattiva e a tema"]],
  ['1.3.0','8 novembre 2026',["Backup su Drive con un tocco, dal menu di condivisione","Backup protetto da password (cifratura AES-256 sul telefono)","Lydia chiede a Chrome di non cancellare mai i suoi dati da sola"]],
  ['1.2.4','8 novembre 2026',["Modalità privacy: l'occhio in alto nasconde o mostra tutti gli importi","Barra in basso: la sezione attiva è in oro, senza riquadro"]],
  ['1.2.3','8 novembre 2026',["Ogni movimento chiede da quale conto parte o su quale conto arriva, con il saldo di ciascuno","Import da backup: i conti di investimento diventano ETF o fondi in Patrimonio, con quote e prezzo di carico","Nuovo movimento: Spesa in rosso, Entrata in verde, Giroconto in oro","Categorie: campo di ricerca e le 12 più usate in vista","Patrimonio: la liquidità è in oro nel grafico"]],
@@ -1051,8 +1051,11 @@ function backupBanner(){if(!backupDue())return '';const s=S.settings;return `<se
 function bindBackupBanner(){if(!$('#bknow'))return;$('#bknow').onclick=doBackup;$('#bklater').onclick=()=>{S.settings.backupSnooze=today();save();render()}}
 /* ---------- widget dell'app Android ---------- */
 let wTimer;function syncWidget(){if(!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform()))return;const P=window.Capacitor.Plugins&&window.Capacitor.Plugins.LydiaWidget;if(!P)return;clearTimeout(wTimer);wTimer=setTimeout(()=>{try{
- const L=S.accounts.map(a=>({n:a.name,b:accBal(a)}));const tot=sum(L,x=>x.b);const d=new Date();
- const data={total:S.accounts.length?eur(tot):'Aggiungi i tuoi conti',lines:L.slice().sort((a,b)=>b.b-a.b).slice(0,3).map(x=>x.n+' '+eur0(x.b)).join(' · '),upd:pad(d.getHours())+':'+pad(d.getMinutes())};
+ const d=new Date(),hm=pad(d.getHours())+':'+pad(d.getMinutes()),k=curK(),c=agg(byMonth(k));const mese=pd(k+'-01').toLocaleDateString('it-IT',{month:'long'});
+ const mov={title:'Lydia · '+mese,total:sEur0(c.risp)+' nel mese',neg:c.risp<0&&!HID(),lines:`Entrate +${eur0(c.entrate)} · Uscite −${eur0(c.netta)}`,upd:hm};
+ const R=etfRows().filter(x=>x.st.qty>0).sort((a,b)=>b.v-a.v),V=sum(R,x=>x.v),C=sum(R,x=>x.st.cost),G=V-C;const qd=Q.last?pad(Q.last.getHours())+':'+pad(Q.last.getMinutes()):(R.length&&priceDate(R[0].e)?fmtDate(priceDate(R[0].e)).replace(/ \d{4}$/,''):'');
+ const inv=R.length?{total:eur0(V),gain:HID()?sPct(C?G/C:0):`${sEur0(G)} (${sPct(C?G/C:0)})`,sign:Math.sign(Math.round(G)),upd:qd?'prezzi '+qd:'',rows:R.slice(0,4).map(x=>{const g=x.st.cost?x.v/x.st.cost-1:0;return{n:x.e.ticker||x.e.name,p:x.p?(HID()?'••••':x.p.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2})):'–',g:sPct(g),s:Math.sign(Math.round(g*1000))}})}:{total:'Nessun ETF',gain:'',sign:0,upd:'',rows:[]};
+ const data={mov,inv};
  P.setData({data:JSON.stringify(data)}).catch(()=>{})}catch(e){}},400)}
 function openLink(url){const k=String(url||'').replace(/^lydia:\/\//,'').replace(/[\/?#].*$/,'');if(QUICK[k])quickFromHash(k);else if(TABS.includes(k)){closeSheet();go(k)}}
 /* ---------- backup sicuro ---------- */

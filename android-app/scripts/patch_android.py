@@ -26,6 +26,12 @@ if 'LydiaWidgetProvider' not in s:
            '                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />\n'
            '            </intent-filter>\n'
            '            <meta-data android:name="android.appwidget.provider" android:resource="@xml/lydia_widget_info" />\n'
+           '        </receiver>\n'
+           '\n        <receiver android:name=".LydiaInvWidgetProvider" android:exported="false">\n'
+           '            <intent-filter>\n'
+           '                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />\n'
+           '            </intent-filter>\n'
+           '            <meta-data android:name="android.appwidget.provider" android:resource="@xml/lydia_inv_widget_info" />\n'
            '        </receiver>\n')
     i = s.index('</application>')
     s = s[:i] + rec + '    ' + s[i:]

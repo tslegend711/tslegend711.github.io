@@ -22,7 +22,8 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:layout_marginStart="6dp"
-            android:text="Lydia · totale conti"
+            android:id="@+id/w_title"
+            android:text="Lydia · questo mese"
             android:textColor="#E3BC4A"
             android:textSize="12sp"
             android:textStyle="bold" />
