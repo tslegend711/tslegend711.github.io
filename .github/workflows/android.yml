@@ -1,0 +1,89 @@
+name: App Android
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'index.html'
+      - 'android-app/**'
+      - '.github/workflows/android.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Controlla la chiave di firma
+        env:
+          KS: ${{ secrets.LYDIA_KEYSTORE }}
+          KP: ${{ secrets.LYDIA_KEYSTORE_PASSWORD }}
+        run: |
+          if [ -z "$KS" ] || [ -z "$KP" ]; then
+            echo "::error::Mancano i segreti LYDIA_KEYSTORE e LYDIA_KEYSTORE_PASSWORD (Settings > Secrets and variables > Actions)."
+            exit 1
+          fi
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Prepara il progetto
+        working-directory: android-app
+        run: |
+          npm install --no-audit --no-fund
+          rm -rf www && mkdir -p www
+          cp ../index.html ../icon-192.png ../icon-512.png ../icon.svg www/
+          # nell'app nativa niente service worker e niente manifest della web app
+          sed -i "s#<script>if('serviceWorker' in navigator).*</script>##" www/index.html
+          sed -i '/rel="manifest"/d' www/index.html
+          npx cap add android
+          npm run assets || echo "Icone non generate: uso quelle predefinite"
+          V=$(grep -o "APP_VERSION='[0-9.]*'" www/index.html | grep -o "[0-9.]*" | head -1)
+          echo "APPV=$V" >> "$GITHUB_ENV"
+          sed -i "s/versionCode [0-9]*/versionCode ${{ github.run_number }}/; s/versionName \"[^\"]*\"/versionName \"$V\"/" android/app/build.gradle
+          npx cap sync android
+
+      - name: Compila e firma
+        working-directory: android-app/android
+        env:
+          KS: ${{ secrets.LYDIA_KEYSTORE }}
+          KP: ${{ secrets.LYDIA_KEYSTORE_PASSWORD }}
+        run: |
+          echo "$KS" | base64 -d > "$RUNNER_TEMP/lydia.jks"
+          chmod +x gradlew
+          ./gradlew --no-daemon assembleRelease \
+            -Pandroid.injected.signing.store.file="$RUNNER_TEMP/lydia.jks" \
+            -Pandroid.injected.signing.store.password="$KP" \
+            -Pandroid.injected.signing.key.alias=lydia \
+            -Pandroid.injected.signing.key.password="$KP"
+          rm -f "$RUNNER_TEMP/lydia.jks"
+          cp app/build/outputs/apk/release/app-release.apk "$RUNNER_TEMP/Lydia-$APPV.apk"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Lydia-${{ env.APPV }}
+          path: ${{ runner.temp }}/Lydia-${{ env.APPV }}.apk
+
+      - name: Pubblica nelle Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: android-${{ github.run_number }}
+          name: Lydia ${{ env.APPV }} per Android (build ${{ github.run_number }})
+          body: |
+            APK di Lydia ${{ env.APPV }}. Scaricalo dal telefono e installalo sopra la versione precedente: i dati restano.
+          files: ${{ runner.temp }}/Lydia-${{ env.APPV }}.apk
+          make_latest: true

@@ -1,0 +1,12 @@
+{
+  "appId": "io.github.tslegend711.lydia",
+  "appName": "Lydia",
+  "webDir": "www",
+  "backgroundColor": "#0B1020",
+  "android": {
+    "allowMixedContent": false,
+    "captureInput": false,
+    "webContentsDebuggingEnabled": false,
+    "adjustMarginsForEdgeToEdge": "auto"
+  }
+}
