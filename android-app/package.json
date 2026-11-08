@@ -3,9 +3,6 @@
   "version": "1.0.0",
   "private": true,
   "description": "Lydia come app Android (Capacitor): stesso codice della web app, dati salvati nell'app e non in Chrome",
-  "scripts": {
-    "assets": "capacitor-assets generate --android --iconBackgroundColor #0B1020 --iconBackgroundColorDark #0B1020 --splashBackgroundColor #0B1020 --splashBackgroundColorDark #0B1020"
-  },
   "dependencies": {
     "@capacitor/android": "^7.0.0",
     "@capacitor/app": "^7.0.0",
@@ -14,7 +11,6 @@
     "@capacitor/share": "^7.0.0"
   },
   "devDependencies": {
-    "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^7.0.0"
   }
 }
