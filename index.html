@@ -20,7 +20,7 @@
   --ink:#141A24; --muted:#5D6778; --faint:#8A93A3;
   --glass:rgba(255,255,255,.62); --glass-strong:rgba(255,255,255,.86); --glass-line:rgba(20,30,50,.09); --glass-hi:rgba(255,255,255,.7);
   --accent:#2F6BFF; --accent-ink:#FFFFFF; --accent-soft:rgba(47,107,255,.12);
-  --pos:#14915A; --neg:#D93D44; --warn:#B87400; --info:#2F6BFF;
+  --pos:#14915A; --neg:#D93D44; --warn:#D9662B; --info:#2F6BFF;
   --c1:#2F6BFF; --c2:#14A37F; --c3:#E08A1E; --c4:#C2417A; --c5:#7A5AE0; --c6:#2BA3C9; --c7:#8B9A2E; --c8:#9AA3B2;
   --shadow:0 10px 30px rgba(20,30,60,.08);
   --font:'SamsungOne','Samsung Sans',system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',sans-serif;
@@ -33,7 +33,7 @@
   --ink:#EAEFF7; --muted:#9AA5B8; --faint:#6D778A;
   --glass:rgba(24,29,40,.58); --glass-strong:rgba(22,27,37,.9); --glass-line:rgba(255,255,255,.08); --glass-hi:rgba(255,255,255,.06);
   --accent:#6B9BFF; --accent-ink:#0A0D13; --accent-soft:rgba(107,155,255,.16);
-  --pos:#43C98A; --neg:#FF6B70; --warn:#F2B441; --info:#6B9BFF;
+  --pos:#43C98A; --neg:#FF6B70; --warn:#FF8F4D; --info:#6B9BFF;
   --c1:#6B9BFF; --c2:#3FCFA4; --c3:#F2A54A; --c4:#EE76A8; --c5:#A48CFF; --c6:#5CC6E8; --c7:#B9C85A; --c8:#7F8899;
   --shadow:0 10px 30px rgba(0,0,0,.35); color-scheme:dark}}
 :root[data-theme="dark"]{
@@ -42,7 +42,7 @@
   --ink:#EAEFF7; --muted:#9AA5B8; --faint:#6D778A;
   --glass:rgba(24,29,40,.58); --glass-strong:rgba(22,27,37,.9); --glass-line:rgba(255,255,255,.08); --glass-hi:rgba(255,255,255,.06);
   --accent:#6B9BFF; --accent-ink:#0A0D13; --accent-soft:rgba(107,155,255,.16);
-  --pos:#43C98A; --neg:#FF6B70; --warn:#F2B441; --info:#6B9BFF;
+  --pos:#43C98A; --neg:#FF6B70; --warn:#FF8F4D; --info:#6B9BFF;
   --c1:#6B9BFF; --c2:#3FCFA4; --c3:#F2A54A; --c4:#EE76A8; --c5:#A48CFF; --c6:#5CC6E8; --c7:#B9C85A; --c8:#7F8899;
   --shadow:0 10px 30px rgba(0,0,0,.35); color-scheme:dark}
 *,*::before,*::after{box-sizing:border-box;border-radius:0}
@@ -521,7 +521,7 @@ function renderHome(){const main=$('#main');
  // trend
  const end=per.kind==='anno'?R.months[11]:per.kind==='mese'?R.months[0]:completeMonths();const ks=[];for(let i=11;i>=0;i--)ks.push(shiftK(end,-i));
  const md=ks.map(k=>agg(byMonth(k)));
- mk('ctrend',{aria:'Entrate e spese per mese',labels:ks.map(shortK),series:[{label:'Entrate',color:css('--c1'),data:md.map(x=>x.entrate)},{label:'Spese',color:css('--gold'),data:md.map(x=>x.netta)}]});
+ mk('ctrend',{aria:'Entrate e spese per mese',labels:ks.map(shortK),series:[{label:'Entrate',color:css('--gold'),data:md.map(x=>x.entrate)},{label:'Spese',color:css('--neg'),data:md.map(x=>x.netta)}]});
  if(pie.length)mk('cpie',{kind:'donut',aria:'Spese per categoria',labels:pie.map(x=>x[0]),values:pie.map(x=>x[1]),colors:pie.map(x=>catColor(x[0])),center:eur0(pieTot)});
 }
 
@@ -609,17 +609,17 @@ function renderSal(){const main=$('#main');const bm=salaryByMonth();const keys=O
   <div class="glass tile"><div class="lab">Ultimo accredito, ${esc(shortK(last))}</div><div class="v num">${eur0(lv)}</div><span class="d">media 12 mesi ${eur0(avg12)}</span></div>
   <div class="glass tile"><div class="lab">${ly} sul ${py}, stessi mesi</div><div class="v num ${yoy==null?'':yoy>=0?'pos':'neg'}">${sPct(yoy)}</div><span class="d">${same.length} mesi confrontati</span></div>
   <div class="glass tile"><div class="lab">Extra nel ${ly}</div><div class="v num">${eur0(yrs[ly]?yrs[ly].x:0)}</div><span class="d">tredicesima e altri extra</span></div></section>
- <section class="blk glass card"><h2>Netto accreditato</h2><p class="sub">Ultimi 24 mesi. In oro la tredicesima e gli altri extra.</p><div class="chart lg" style="margin-top:10px"><div class="cv" id="csal"></div></div></section>
+ <section class="blk glass card"><h2>Netto accreditato</h2><p class="sub">Ultimi 24 mesi. In verde la tredicesima e gli altri extra.</p><div class="chart lg" style="margin-top:10px"><div class="cv" id="csal"></div></div></section>
  <section class="blk glass card"><div class="headrow"><div><h2>Buste paga</h2><p class="sub">Carica il PDF della busta paga oppure inseriscila a mano.</p></div><div style="display:flex;gap:6px"><button class="btn ghost sm" id="addbp">A mano</button><button class="btn gold sm" id="pdfbp">Da PDF</button></div></div>
   ${P.length?`<div class="list" id="bplist">${P.map(p=>{const tr=p.trattenute||0,ir=p.irpef||0,co=p.contributi||0,ot=Math.max(0,tr-ir-co);const L=p.lordo||p.netto+tr;return `<button class="row" data-bp="${p.id}" style="display:block;padding:12px 0"><div style="display:flex;justify-content:space-between;gap:10px"><b style="text-transform:capitalize">${esc(monthLabel(p.month))}</b><b class="num">${eur(p.netto)}</b></div>
-   <div class="wf" role="img" aria-label="Netto ${eur0(p.netto)}, IRPEF ${eur0(ir)}, contributi ${eur0(co)}">${[[p.netto,'--c1'],[ir,'--neg'],[co,'--c3'],[ot,'--c8']].map(([v,c])=>v>0?`<i style="width:${v/L*100}%;background:var(${c})"></i>`:'').join('')}</div>
+   <div class="wf" role="img" aria-label="Netto ${eur0(p.netto)}, IRPEF ${eur0(ir)}, contributi ${eur0(co)}">${[[p.netto,'--gold'],[ir,'--neg'],[co,'--c3'],[ot,'--c8']].map(([v,c])=>v>0?`<i style="width:${v/L*100}%;background:var(${c})"></i>`:'').join('')}</div>
    <div class="s" style="white-space:normal">Lordo ${eur0(L)} · IRPEF ${eur0(ir)} · contributi ${eur0(co)}${p.ore?` · ${fq(p.ore)} h straordinario`:''}${p.rimborsi?` · rimborsi ${eur0(p.rimborsi)}`:''}</div></button>`}).join('')}</div>
-   <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:8px" class="note">${[['Netto','--c1'],['IRPEF','--neg'],['Contributi','--c3'],['Altre trattenute','--c8']].map(([l,c])=>`<span><i class="sw" style="display:inline-block;background:var(${c});margin-right:5px"></i>${l}</span>`).join('')}</div>`:'<p class="note">Nessuna busta paga registrata.</p>'}</section>
+   <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:8px" class="note">${[['Netto','--gold'],['IRPEF','--neg'],['Contributi','--c3'],['Altre trattenute','--c8']].map(([l,c])=>`<span><i class="sw" style="display:inline-block;background:var(${c});margin-right:5px"></i>${l}</span>`).join('')}</div>`:'<p class="note">Nessuna busta paga registrata.</p>'}</section>
  <section class="blk glass card"><h2>Anno per anno</h2><p class="sub">Media dello stipendio di ogni mese, senza tredicesima ed extra.</p><div class="scrollx" style="margin-top:8px"><table><thead><tr><th>Anno</th><th>Mesi</th><th>Media</th><th>Var.</th><th>Extra</th><th>Totale</th></tr></thead><tbody>${yl.slice().reverse().map(y=>{const o=yrs[y],p=yrs[String(+y-1)],a=o.s/o.n,pa=p?p.s/p.n:null;return `<tr><td>${y}</td><td class="num">${o.n}</td><td class="num">${eur0(a)}</td><td class="num">${pa?`<span class="${a>=pa?'pos':'neg'}">${sPct(a/pa-1)}</span>`:'–'}</td><td class="num">${eur0(o.x)}</td><td class="num"><b>${eur0(o.s+o.x)}</b></td></tr>`}).join('')}</tbody></table></div></section>`;
  $('#addbp').onclick=()=>payslipForm();$('#pdfbp').onclick=()=>pickFiles('.pdf,application/pdf',importPayslips,true);
  if($('#bplist'))$('#bplist').onclick=e=>{const r=e.target.closest('[data-bp]');if(r)payslipForm(S.payslips.find(p=>p.id===r.dataset.bp))};
  const ck=[];for(let i=23;i>=0;i--){const k=shiftK(last,-i);if(k>=keys[0])ck.push(k)}
- mk('csal',{aria:'Netto accreditato per mese',stacked:true,labels:ck.map(shortK),series:[{label:'Mensilità',color:css('--c1'),data:ck.map(k=>bm[k]?bm[k].stip:null)},{label:'Extra',color:css('--gold'),data:ck.map(k=>bm[k]&&bm[k].extra?bm[k].extra:null)}]});
+ mk('csal',{aria:'Netto accreditato per mese',stacked:true,labels:ck.map(shortK),series:[{label:'Mensilità',color:css('--gold'),data:ck.map(k=>bm[k]?bm[k].stip:null)},{label:'Extra',color:css('--pos'),data:ck.map(k=>bm[k]&&bm[k].extra?bm[k].extra:null)}]});
 }
 /* ---------- lettura PDF (testo), senza librerie esterne ---------- */
 async function inflatePDF(u){for(const f of['deflate','deflate-raw']){try{return new Uint8Array(await new Response(new Blob([u]).stream().pipeThrough(new DecompressionStream(f))).arrayBuffer())}catch(e){}}return null}
@@ -1026,7 +1026,7 @@ function fixBalSheet(a){const cur=Math.round(accBal(a)*100)/100;openSheet(`<h3>C
 
 /* ---------- privacy, backup, novità ---------- */
 const APP_VERSION='1.5.0';
-const CHANGELOG=[['1.5.0','8 novembre 2026',["Testi più semplici in tutta l'app","Barra in alto sempre leggibile mentre scorri","Pulsanti e selettori più sobri, grafico della Home più pulito","Widget Movimenti su una riga; widget Investimenti più basso","App Android: barre di sistema dello stesso colore dell'app","Barra in basso sospesa, con la sezione attiva evidenziata"]],
+const CHANGELOG=[['1.5.0','8 novembre 2026',["Testi più semplici in tutta l'app","Barra in alto sempre leggibile mentre scorri","Pulsanti e selettori più sobri, grafico della Home più pulito","Widget Movimenti su una riga; widget Investimenti più basso","App Android: barre di sistema dello stesso colore dell'app","Barra in basso sospesa, con la sezione attiva evidenziata","Colori: l'oro indica le cose positive (entrate, stipendio), il rosso le spese"]],
  ['1.4.0','8 novembre 2026',["App Android: widget Movimenti, con entrate e uscite del mese e i pulsanti Spesa, Entrata e Giroconto","App Android: widget Investimenti, con valore, guadagno e prezzo di ETF e azioni","App Android: icona di Lydia, anche adattiva e a tema"]],
  ['1.3.0','8 novembre 2026',["Backup su Drive con un tocco, dal menu di condivisione","Backup protetto da password (cifratura AES-256 sul telefono)","Lydia chiede a Chrome di non cancellare mai i suoi dati da sola"]],
  ['1.2.4','8 novembre 2026',["Modalità privacy: l'occhio in alto nasconde o mostra tutti gli importi","Barra in basso: la sezione attiva è in oro, senza riquadro"]],
