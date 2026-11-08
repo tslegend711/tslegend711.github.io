@@ -119,4 +119,50 @@ public class LydiaWidgetPlugin extends Plugin {
             }
         });
     }
+
+    /** Legge il testo di una foto (busta paga o estratto conto) sul telefono, senza internet. */
+    @PluginMethod
+    public void ocr(final PluginCall call) {
+        String b64 = call.getString("data", "");
+        try {
+            byte[] bytes = android.util.Base64.decode(b64, android.util.Base64.DEFAULT);
+            android.graphics.Bitmap bmp = android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
+            if (bmp == null) {
+                call.reject("Immagine non leggibile");
+                return;
+            }
+            final int w = bmp.getWidth(), h = bmp.getHeight();
+            com.google.mlkit.vision.common.InputImage img = com.google.mlkit.vision.common.InputImage.fromBitmap(bmp, 0);
+            com.google.mlkit.vision.text.TextRecognizer rec = com.google.mlkit.vision.text.TextRecognition.getClient(com.google.mlkit.vision.text.latin.TextRecognizerOptions.DEFAULT_OPTIONS);
+            rec.process(img).addOnSuccessListener(text -> {
+                try {
+                    org.json.JSONArray words = new org.json.JSONArray();
+                    for (com.google.mlkit.vision.text.Text.TextBlock b : text.getTextBlocks()) {
+                        for (com.google.mlkit.vision.text.Text.Line l : b.getLines()) {
+                            for (com.google.mlkit.vision.text.Text.Element e : l.getElements()) {
+                                android.graphics.Rect r = e.getBoundingBox();
+                                if (r == null) continue;
+                                org.json.JSONObject o = new org.json.JSONObject();
+                                o.put("t", e.getText());
+                                o.put("x", r.left);
+                                o.put("y", r.top);
+                                o.put("w", r.width());
+                                o.put("h", r.height());
+                                words.put(o);
+                            }
+                        }
+                    }
+                    com.getcapacitor.JSObject res = new com.getcapacitor.JSObject();
+                    res.put("w", w);
+                    res.put("h", h);
+                    res.put("words", words.toString());
+                    call.resolve(res);
+                } catch (Exception ex) {
+                    call.reject("Errore nella lettura della foto");
+                }
+            }).addOnFailureListener(ex -> call.reject("Non riesco a leggere il testo della foto"));
+        } catch (Exception e) {
+            call.reject("Immagine non leggibile");
+        }
+    }
 }

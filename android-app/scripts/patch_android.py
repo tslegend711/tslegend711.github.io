@@ -42,6 +42,6 @@ if 'LydiaWidgetProvider' not in s:
 g = root / 'android' / 'app' / 'build.gradle'
 gs = g.read_text(encoding='utf-8')
 if 'androidx.biometric' not in gs:
-    gs = gs.replace('dependencies {', 'dependencies {\n    implementation "androidx.biometric:biometric:1.1.0"', 1)
+    gs = gs.replace('dependencies {', 'dependencies {\n    implementation "androidx.biometric:biometric:1.1.0"\n    implementation "com.google.mlkit:text-recognition:16.0.1"', 1)
     g.write_text(gs, encoding='utf-8')
 print('progetto Android aggiornato:', m)
