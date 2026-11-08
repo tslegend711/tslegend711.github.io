@@ -246,6 +246,30 @@ nav.tabs .dot{position:absolute;top:4px;right:calc(50% - 22px);min-width:16px;he
 .kv{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-top:1px solid var(--glass-line);font-size:.9rem}
 .toast{position:fixed;left:50%;bottom:calc(150px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:60;background:var(--ink);color:var(--bg);padding:11px 16px;font-size:.9rem;font-weight:600;opacity:0;pointer-events:none;transition:opacity .2s;max-width:90%;width:max-content}
 .toast.show{opacity:1}
+:root{--r-lg:24px;--r-md:16px;--r-sm:12px}
+/* arrotondamenti come Android e One UI */
+.glass,.card,.tile,.hero,.empty,.acc-card,.resbox{border-radius:var(--r-lg)}
+section.blk.glass,.glass.card,.glass.tile,.glass.hero,.glass.empty{overflow:hidden}
+.hero,.goldline{border:1px solid color-mix(in srgb,var(--gold) 55%,transparent);border-image:none}
+.btn,.seg,.seg button,.cats button,.toast,.bar,.bar i,.split,.wf,.chip,nav.tabs .dot,.iconbtn .dot,.brand .ver{border-radius:999px}
+.split i:first-child,.wf i:first-child{border-radius:999px 0 0 999px}.split i:last-child,.wf i:last-child{border-radius:0 999px 999px 0}.split i:only-child,.wf i:only-child{border-radius:999px}
+.split,.wf{overflow:hidden}
+.iconbtn,.ico,.step .n,.pernav button{border-radius:50%}
+.priv .k{border-radius:999px;min-width:28px}
+.f input,.f select,.f textarea,.search,.cats.accs button,.pdfrow,.resbox{border-radius:var(--r-sm)}
+.cats.accs button{border-radius:var(--r-sm)}
+.sheet{border-radius:28px 28px 0 0}.grab{border-radius:4px}
+.cro{border-radius:10px}.sw,.clg .sw,.acc-card .sw{border-radius:4px}
+.tip .stripe{border-radius:4px}
+.brand svg{border-radius:8px;overflow:hidden}
+.glass .glass{border-radius:var(--r-md)}
+#ftype button{border-radius:999px}
+.btn{border-radius:22px}.btn.sm{border-radius:18px}
+.cats button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+/* pulsante + in vetro dorato lucido */
+.fab{overflow:hidden;background:linear-gradient(135deg,rgba(236,219,165,.82) 0%,rgba(212,175,55,.8) 38%,rgba(160,132,41,.84) 62%,rgba(212,175,55,.8) 82%,rgba(231,211,145,.84) 100%);-webkit-backdrop-filter:blur(14px) saturate(160%);backdrop-filter:blur(14px) saturate(160%);border:1px solid rgba(255,255,255,.45);box-shadow:0 10px 26px rgba(160,132,41,.36),inset 0 1px 0 rgba(255,255,255,.75),inset 0 -8px 14px rgba(110,80,10,.22)}
+.fab::before{content:"";position:absolute;left:14%;right:14%;top:5%;height:46%;border-radius:50%;background:linear-gradient(rgba(255,255,255,.7),rgba(255,255,255,0));pointer-events:none}
+.fab svg{position:relative}
 </style>
 </head>
 <body>
@@ -1026,7 +1050,7 @@ function fixBalSheet(a){const cur=Math.round(accBal(a)*100)/100;openSheet(`<h3>C
 
 /* ---------- privacy, backup, novità ---------- */
 const APP_VERSION='1.5.0';
-const CHANGELOG=[['1.5.0','8 novembre 2026',["Testi più semplici in tutta l'app","Barra in alto sempre leggibile mentre scorri","Pulsanti e selettori più sobri, grafico della Home più pulito","Widget Movimenti su una riga; widget Investimenti più basso","App Android: barre di sistema dello stesso colore dell'app","Barra in basso sospesa, con la sezione attiva evidenziata","Pulsante + rotondo","Colori: l'oro indica le cose positive (entrate, stipendio), il rosso le spese"]],
+const CHANGELOG=[['1.5.0','8 novembre 2026',["Testi più semplici in tutta l'app","Barra in alto sempre leggibile mentre scorri","Pulsanti e selettori più sobri, grafico della Home più pulito","Widget Movimenti su una riga; widget Investimenti più basso","App Android: barre di sistema dello stesso colore dell'app","Barra in basso sospesa, con la sezione attiva evidenziata","Pulsante + rotondo, in vetro dorato lucido","Angoli arrotondati come su Android","Colori: l'oro indica le cose positive (entrate, stipendio), il rosso le spese"]],
  ['1.4.0','8 novembre 2026',["App Android: widget Movimenti, con entrate e uscite del mese e i pulsanti Spesa, Entrata e Giroconto","App Android: widget Investimenti, con valore, guadagno e prezzo di ETF e azioni","App Android: icona di Lydia, anche adattiva e a tema"]],
  ['1.3.0','8 novembre 2026',["Backup su Drive con un tocco, dal menu di condivisione","Backup protetto da password (cifratura AES-256 sul telefono)","Lydia chiede a Chrome di non cancellare mai i suoi dati da sola"]],
  ['1.2.4','8 novembre 2026',["Modalità privacy: l'occhio in alto nasconde o mostra tutti gli importi","Barra in basso: la sezione attiva è in oro, senza riquadro"]],
