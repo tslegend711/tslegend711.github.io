@@ -225,9 +225,32 @@ public class LydiaInvWidgetProvider extends AppWidgetProvider {
         String upd = j.optString("upd", "");
         v.setTextViewText(R.id.iv_upd, busy ? "Investimenti · aggiorno…" : "Investimenti" + (upd.length() > 0 ? " · " + upd : ""));
         v.setTextViewText(R.id.iv_total, hid ? "•••••• €" : j.optString("total", ""));
-        String g = hid ? j.optString("gainp", "") : j.optString("gain", "").replace(" · ", "\n");
-        v.setTextViewText(R.id.iv_gain, g);
-        v.setTextColor(R.id.iv_gain, color(c, j.optInt("sign", 0)));
+        JSONArray rows = j.optJSONArray("rows");
+        if (rows != null && rows.length() > 0) {
+            // un titolo per riga: ticker e guadagno in percentuale
+            android.text.SpannableStringBuilder sb = new android.text.SpannableStringBuilder();
+            int n = Math.min(rows.length(), 2);
+            for (int i = 0; i < n; i++) {
+                JSONObject r = rows.optJSONObject(i);
+                if (r == null) continue;
+                if (sb.length() > 0) sb.append("\n");
+                String t = r.optString("n", "");
+                if (t.length() > 8) t = t.substring(0, 8);
+                int a = sb.length();
+                sb.append(t);
+                sb.setSpan(new android.text.style.ForegroundColorSpan(c.getColor(R.color.lydia_w_muted)), a, sb.length(), 0);
+                sb.append("  ");
+                int b = sb.length();
+                sb.append(r.optString("gp", ""));
+                sb.setSpan(new android.text.style.ForegroundColorSpan(color(c, r.optInt("s", 0))), b, sb.length(), 0);
+            }
+            v.setTextViewText(R.id.iv_gain, sb);
+            v.setTextColor(R.id.iv_gain, c.getColor(R.color.lydia_w_text));
+        } else {
+            String g = hid ? j.optString("gainp", "") : j.optString("gain", "").replace(" · ", "\n");
+            v.setTextViewText(R.id.iv_gain, g);
+            v.setTextColor(R.id.iv_gain, color(c, j.optInt("sign", 0)));
+        }
         return v;
     }
 
