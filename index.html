@@ -679,6 +679,7 @@ function renderSal(){const main=$('#main');const bm=salaryByMonth();const keys=O
 }
 /* ---------- lettura PDF (testo), senza librerie esterne ---------- */
 async function inflatePDF(u){for(const f of['deflate','deflate-raw']){try{return new Uint8Array(await new Response(new Blob([u]).stream().pipeThrough(new DecompressionStream(f))).arrayBuffer())}catch(e){}}return null}
+function a85(u){const out=[];let t=0,n=0;let i=0;if(u[0]===60&&u[1]===126)i=2;for(;i<u.length;i++){const c=u[i];if(c===126)break;if(c<=32)continue;if(c===122&&n===0){out.push(0,0,0,0);continue}if(c<33||c>117)continue;t=t*85+(c-33);n++;if(n===5){out.push(t>>>24&255,t>>>16&255,t>>>8&255,t&255);t=0;n=0}}if(n>1){for(let k=n;k<5;k++)t=t*85+84;const b=[t>>>24&255,t>>>16&255,t>>>8&255,t&255];out.push(...b.slice(0,n-1))}return new Uint8Array(out)}
 const latin1=u=>{let s='';for(let i=0;i<u.length;i+=8192)s+=String.fromCharCode.apply(null,u.subarray(i,i+8192));return s};
 async function pdfLines(buf){const u=new Uint8Array(buf);const T=latin1(u);if(!T.startsWith('%PDF'))throw new Error('Non è un PDF');
  if(/\/Encrypt\s/.test(T))throw new Error('Il PDF è protetto da password: aprilo e salvalo senza protezione');
@@ -689,7 +690,7 @@ async function pdfLines(buf){const u=new Uint8Array(buf);const T=latin1(u);if(!T
   else{dict=T.slice(st,si);const a=si+T.slice(si).match(/^stream(\r\n|\r|\n)/)[0].length;const lm=dict.match(/\/Length\s+(\d+)(\s+(\d+)\s+R)?/);let len=-1;
    if(lm&&!lm[2])len=+lm[1];else if(lm){const lo=T.match(new RegExp('(?:^|[\\r\\n\\s])'+lm[1]+'\\s+0\\s+obj\\s*(\\d+)'));if(lo)len=+lo[1]}
    if(len<0||T.slice(a+len,a+len+12).indexOf('endstream')<0)len=T.indexOf('endstream',a)-a;
-   let raw=u.subarray(a,a+len);if(/FlateDecode/.test(dict))raw=await inflatePDF(raw);else if(/\/Filter/.test(dict))raw=null;stream=raw;end=T.indexOf('endobj',a+len);if(end<0)end=a+len}
+   let raw=u.subarray(a,a+len);const fm=dict.match(/\/Filter\s*(\[[^\]]*\]|\/\w+)/);const fl=fm?(fm[1].match(/\/\w+/g)||[]).map(x=>x.slice(1)):[];for(const f of fl){if(!raw)break;if(f==='FlateDecode'||f==='Fl')raw=await inflatePDF(raw);else if(f==='ASCII85Decode'||f==='A85')raw=a85(raw);else{raw=null}}stream=raw;end=T.indexOf('endobj',a+len);if(end<0)end=a+len}
   objs[id]={dict,stream};re.lastIndex=end}
  // object stream (PDF 1.5+)
  for(const id in objs){const o=objs[id];if(!/\/Type\s*\/ObjStm/.test(o.dict)||!o.stream)continue;const s=latin1(o.stream);const n=+(o.dict.match(/\/N\s+(\d+)/)||[])[1],first=+(o.dict.match(/\/First\s+(\d+)/)||[])[1];const hdr=s.slice(0,first).trim().split(/\s+/).map(Number);
