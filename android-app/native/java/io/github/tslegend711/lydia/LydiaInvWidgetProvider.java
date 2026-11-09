@@ -106,7 +106,11 @@ public class LydiaInvWidgetProvider extends AppWidgetProvider {
         JSONObject inv = all.optJSONObject("inv");
         if (inv == null) return false;
         JSONArray rows = inv.optJSONArray("rows");
-        if (rows == null || rows.length() == 0) return false;
+        java.util.Map<String, Double> seen = new java.util.HashMap<>();
+        if (rows == null || rows.length() == 0) {
+            LydiaNotify.checkTargets(c, inv, seen);
+            return false;
+        }
         double tv = 0, tc = 0;
         boolean any = false, complete = true;
         for (int i = 0; i < rows.length(); i++) {
@@ -119,6 +123,7 @@ public class LydiaInvWidgetProvider extends AppWidgetProvider {
                 continue;
             }
             any = true;
+            seen.put(sym, pp[0]);
             double v = q * pp[0], g = v - cost;
             r.put("p", money(pp[0]));
             tv += v;
@@ -131,6 +136,11 @@ public class LydiaInvWidgetProvider extends AppWidgetProvider {
             r.put("g", signed(g));
             r.put("gp", pct(cost > 0 ? g / cost : 0));
             r.put("s", sgn(g));
+        }
+        try {
+            LydiaNotify.checkTargets(c, inv, seen);
+        } catch (Exception e) {
+            // gli avvisi non devono mai bloccare il widget
         }
         if (!any) return false;
         if (complete) {

@@ -225,4 +225,19 @@ public class LydiaWidgetPlugin extends Plugin {
             }
         }).start();
     }
+
+    /** Notifica una volta sola per chiave (prezzo obiettivo raggiunto, liquidità sopra la riserva). */
+    @PluginMethod
+    public void notifyOnce(PluginCall call) {
+        boolean sent = LydiaNotify.once(getContext(), call.getString("key", ""), call.getString("title", "Lydia"), call.getString("body", ""), call.getString("link", "patrimonio"));
+        com.getcapacitor.JSObject r = new com.getcapacitor.JSObject();
+        r.put("sent", sent);
+        call.resolve(r);
+    }
+
+    @PluginMethod
+    public void notifyReset(PluginCall call) {
+        LydiaNotify.reset(getContext(), call.getString("key", ""));
+        call.resolve();
+    }
 }
