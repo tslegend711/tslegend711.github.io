@@ -234,7 +234,8 @@ public class LydiaInvWidgetProvider extends AppWidgetProvider {
         }
         String upd = j.optString("upd", "");
         v.setTextViewText(R.id.iv_upd, busy ? "Investimenti · aggiorno…" : "Investimenti" + (upd.length() > 0 ? " · " + upd : ""));
-        v.setTextViewText(R.id.iv_total, hid ? "•••••• €" : j.optString("total", ""));
+        v.setTextViewText(R.id.iv_total, j.optString("total", ""));
+        v.setViewVisibility(R.id.iv_total, hid ? View.GONE : View.VISIBLE);
         JSONArray rows = j.optJSONArray("rows");
         if (rows != null && rows.length() > 0) {
             // un titolo per riga: ticker e guadagno in percentuale
@@ -277,6 +278,7 @@ public class LydiaInvWidgetProvider extends AppWidgetProvider {
         v.setOnClickPendingIntent(R.id.iv_ref, android.app.PendingIntent.getBroadcast(c, 32, ri, android.app.PendingIntent.FLAG_UPDATE_CURRENT | android.app.PendingIntent.FLAG_IMMUTABLE));
         JSONArray rows = j != null ? j.optJSONArray("rows") : null;
         if (j == null || rows == null || rows.length() == 0) {
+            v.setViewVisibility(R.id.iv_total, View.VISIBLE);
             v.setTextViewText(R.id.iv_total, j == null ? "Apri Lydia" : "Nessun titolo");
             v.setTextViewText(R.id.iv_gain, j == null ? "Il widget si riempie alla prima apertura" : "Aggiungi un titolo in Patrimonio");
             v.setTextColor(R.id.iv_gain, c.getColor(R.color.lydia_w_muted));
@@ -285,7 +287,8 @@ public class LydiaInvWidgetProvider extends AppWidgetProvider {
             return v;
         }
         int sg = j.optInt("sign", 0);
-        v.setTextViewText(R.id.iv_total, hid ? "•••••• €" : j.optString("total", ""));
+        v.setTextViewText(R.id.iv_total, j.optString("total", ""));
+        v.setViewVisibility(R.id.iv_total, hid ? View.GONE : View.VISIBLE);
         v.setTextViewText(R.id.iv_gain, hid ? j.optString("gainp", "") : j.optString("gain", ""));
         v.setTextColor(R.id.iv_gain, color(c, sg));
         v.setTextViewText(R.id.iv_upd, busy ? "aggiorno…" : j.optString("upd", ""));

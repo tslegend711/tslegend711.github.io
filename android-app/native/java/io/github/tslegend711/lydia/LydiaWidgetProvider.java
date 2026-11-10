@@ -101,7 +101,9 @@ public class LydiaWidgetProvider extends AppWidgetProvider {
         v.setImageViewResource(R.id.w_eye, hid ? R.drawable.lydia_ic_eye : R.drawable.lydia_ic_eye_off);
         v.setOnClickPendingIntent(R.id.w_eye, action(c, ACTION_REVEAL, 30));
         v.setTextViewText(R.id.w_title, j != null ? j.optString("title", "Questo mese") : "Lydia");
-        v.setTextViewText(R.id.w_total, j != null ? (hid ? "•••• €" : j.optString("total", "")) : "Tocca per aprire");
+        v.setTextViewText(R.id.w_total, j != null ? j.optString("total", "") : "Tocca per aprire");
+        v.setViewVisibility(R.id.w_total, hid && j != null ? View.GONE : View.VISIBLE);
+        v.setTextViewTextSize(R.id.w_title, android.util.TypedValue.COMPLEX_UNIT_SP, hid && j != null ? 15f : 12.5f);
         if (j != null) v.setTextColor(R.id.w_total, c.getColor(!hid && j.optBoolean("neg", false) ? R.color.lydia_w_neg : R.color.lydia_w_text));
         v.setOnClickPendingIntent(R.id.w_root, link(c, "movimenti", 10));
         v.setOnClickPendingIntent(R.id.w_out, link(c, "nuova-spesa", 11));
