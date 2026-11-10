@@ -193,8 +193,23 @@ public class LydiaInvWidgetProvider extends AppWidgetProvider {
                     }
                 }
             }
-            // l'ultima chiusura della serie è il prezzo giusto della Borsa scelta
-            if (lastClose > 0) p = lastClose;
+            // ultima seduta: spesso c'è solo nel campo "prezzo" (la chiusura del giorno resta vuota).
+            // La uso se è di un giorno feriale, più recente dell'ultima chiusura e plausibile; altrimenti tengo la chiusura.
+            long rmt = res.getJSONObject("meta").optLong("regularMarketTime", 0);
+            boolean useMeta = false;
+            if (rmt > 0 && lastClose > 0 && Math.abs(p / lastClose - 1) < 0.06 && Math.abs(p - lastClose) > 1e-6) {
+                java.util.Calendar cm = java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("Europe/Rome"));
+                cm.setTimeInMillis(rmt * 1000L);
+                int dw = cm.get(java.util.Calendar.DAY_OF_WEEK);
+                long lastTs = 0;
+                if (ts != null) for (int i = Math.min(cl.length(), ts.length()) - 1; i >= 0; i--) if (!cl.isNull(i)) { lastTs = ts.optLong(i, 0); break; }
+                java.util.Calendar cl0 = java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("Europe/Rome"));
+                cl0.setTimeInMillis(lastTs * 1000L);
+                boolean newerDay = cm.get(java.util.Calendar.YEAR) * 400 + cm.get(java.util.Calendar.DAY_OF_YEAR) > cl0.get(java.util.Calendar.YEAR) * 400 + cl0.get(java.util.Calendar.DAY_OF_YEAR);
+                useMeta = dw != java.util.Calendar.SATURDAY && dw != java.util.Calendar.SUNDAY && newerDay;
+            }
+            if (useMeta) prev = lastClose;
+            else if (lastClose > 0) p = lastClose;
             if (!(prev > 0)) prev = res.getJSONObject("meta").optDouble("previousClose", 0);
             return new double[]{p, prev};
         } catch (Exception e) {
