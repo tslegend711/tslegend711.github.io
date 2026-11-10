@@ -240,4 +240,66 @@ public class LydiaWidgetPlugin extends Plugin {
         LydiaNotify.reset(getContext(), call.getString("key", ""));
         call.resolve();
     }
+
+    // ---------- composizione degli ETF (Yahoo vuole un "crumb" legato a un cookie: lo prendo una volta e lo riuso) ----------
+    private static String crumb = null;
+    private static java.net.CookieManager jar = null;
+
+    private static String httpGet(String url) throws Exception {
+        java.net.HttpURLConnection h = (java.net.HttpURLConnection) new java.net.URL(url).openConnection();
+        h.setConnectTimeout(9000);
+        h.setReadTimeout(9000);
+        h.setInstanceFollowRedirects(true);
+        h.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Mobile Safari/537.36");
+        h.setRequestProperty("Accept", "*/*");
+        int code = h.getResponseCode();
+        java.io.InputStream in = code >= 400 ? h.getErrorStream() : h.getInputStream();
+        StringBuilder sb = new StringBuilder();
+        if (in != null) {
+            java.io.BufferedReader br = new java.io.BufferedReader(new java.io.InputStreamReader(in, "UTF-8"));
+            String line;
+            while ((line = br.readLine()) != null) sb.append(line);
+            br.close();
+        }
+        h.disconnect();
+        if (code >= 400) throw new java.io.IOException("HTTP " + code);
+        return sb.toString();
+    }
+
+    private static synchronized String yahooCrumb(boolean fresh) throws Exception {
+        if (jar == null) {
+            jar = new java.net.CookieManager(null, java.net.CookiePolicy.ACCEPT_ALL);
+            java.net.CookieHandler.setDefault(jar);
+        }
+        if (crumb != null && !fresh) return crumb;
+        try { httpGet("https://fc.yahoo.com"); } catch (Exception e) { /* risponde 404 ma lascia il cookie */ }
+        String c = httpGet("https://query2.finance.yahoo.com/v1/test/getcrumb").trim();
+        if (c.isEmpty() || c.contains("<")) throw new java.io.IOException("crumb");
+        crumb = c;
+        return crumb;
+    }
+
+    @PluginMethod
+    public void yahooSummary(final PluginCall call) {
+        final String sym = call.getString("sym", "");
+        final String modules = call.getString("modules", "topHoldings,fundProfile");
+        new Thread(() -> {
+            String body = null;
+            for (int attempt = 0; attempt < 2 && body == null; attempt++) {
+                try {
+                    String c = yahooCrumb(attempt > 0);
+                    body = httpGet("https://query2.finance.yahoo.com/v10/finance/quoteSummary/" + java.net.URLEncoder.encode(sym, "UTF-8") + "?modules=" + modules + "&crumb=" + java.net.URLEncoder.encode(c, "UTF-8"));
+                } catch (Exception e) {
+                    body = null;
+                }
+            }
+            if (body == null) {
+                call.reject("Yahoo non risponde");
+                return;
+            }
+            com.getcapacitor.JSObject r = new com.getcapacitor.JSObject();
+            r.put("json", body);
+            call.resolve(r);
+        }).start();
+    }
 }

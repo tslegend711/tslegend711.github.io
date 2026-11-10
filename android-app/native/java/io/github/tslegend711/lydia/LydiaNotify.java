@@ -68,13 +68,28 @@ public class LydiaNotify {
                 p = pp[0];
                 prices.put(sym, p);
             }
-            double up = a.optDouble("up", 0), dn = a.optDouble("dn", 0);
+            double up = a.optDouble("up", 0), dn = a.optDouble("dn", 0), pc = a.optDouble("pct", 0);
+            String link = a.optString("link", "titolo/" + a.optString("id", ""));
+            if (pc > 0) {
+                double[] pp = LydiaInvWidgetProvider.price(sym);
+                if (pp != null && pp[1] > 0) {
+                    double ch = pp[0] / pp[1] - 1;
+                    if (Math.abs(ch) * 100 >= pc) {
+                        java.text.SimpleDateFormat f = new java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.ITALY);
+                        f.setTimeZone(java.util.TimeZone.getTimeZone("Europe/Rome"));
+                        String day = f.format(new java.util.Date());
+                        String pcs = String.format(java.util.Locale.ITALY, "%+.1f%%", ch * 100);
+                        once(c, a.optString("kp", "pct:" + a.optString("id", "") + ":") + day, a.optString("n", sym) + " " + pcs + " oggi",
+                            "Si è mosso più del ±" + String.format(java.util.Locale.ITALY, "%.1f", pc).replace(",0", "") + "% che hai scelto. Tocca per aprire.", link);
+                    }
+                }
+            }
             String nm = a.optString("n", sym), id = a.optString("id", "");
             String ps = LydiaInvWidgetProvider.money(p);
             if (up > 0 && p >= up)
-                once(c, a.optString("ku", "up:" + id), nm + " è salito a " + ps, "Hai chiesto di avvisarti sopra " + LydiaInvWidgetProvider.money(up) + ". Tocca per aprire il titolo.", "titolo/" + id);
+                once(c, a.optString("ku", "up:" + id), nm + " è salito a " + ps, "Hai chiesto di avvisarti sopra " + LydiaInvWidgetProvider.money(up) + ". Tocca per aprire il titolo.", link);
             if (dn > 0 && p <= dn)
-                once(c, a.optString("kd", "dn:" + id), nm + " è sceso a " + ps, "Hai chiesto di avvisarti sotto " + LydiaInvWidgetProvider.money(dn) + ". Potrebbe essere il momento di comprare: tocca per aprire il titolo.", "titolo/" + id);
+                once(c, a.optString("kd", "dn:" + id), nm + " è sceso a " + ps, "Hai chiesto di avvisarti sotto " + LydiaInvWidgetProvider.money(dn) + ". Potrebbe essere il momento di comprare: tocca per aprire il titolo.", link);
         }
     }
 }
