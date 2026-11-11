@@ -49,4 +49,14 @@ ms = m.read_text(encoding='utf-8')
 if 'com.google.mlkit.vision.DEPENDENCIES' not in ms:
     ms = ms.replace('</application>', '    <meta-data android:name="com.google.mlkit.vision.DEPENDENCIES" android:value="ocr" />\n    </application>', 1)
     m.write_text(ms, encoding='utf-8')
+# backup di Android: solo la copia dei dati che Lydia scrive in files/lydia_backup.json
+ms = m.read_text(encoding='utf-8')
+if 'lydia_backup_rules' not in ms:
+    ms = re.sub(r'\s*android:(fullBackupContent|dataExtractionRules)="[^"]*"', '', ms)
+    if 'android:allowBackup=' in ms:
+        ms = re.sub(r'android:allowBackup="[^"]*"', 'android:allowBackup="true"', ms, count=1)
+    else:
+        ms = ms.replace('<application', '<application\n        android:allowBackup="true"', 1)
+    ms = ms.replace('android:allowBackup="true"', 'android:allowBackup="true"\n        android:fullBackupContent="@xml/lydia_backup_rules"\n        android:dataExtractionRules="@xml/lydia_data_rules"', 1)
+    m.write_text(ms, encoding='utf-8')
 print('progetto Android aggiornato:', m)

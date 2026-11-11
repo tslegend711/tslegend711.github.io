@@ -14,6 +14,10 @@ import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
+import com.getcapacitor.annotation.ActivityCallback;
+import androidx.activity.result.ActivityResult;
+import android.content.Intent;
+import android.net.Uri;
 
 /** Ponte tra il codice web e Android: dati dei widget e colore delle barre di sistema. */
 @CapacitorPlugin(name = "LydiaWidget")
@@ -301,5 +305,188 @@ public class LydiaWidgetPlugin extends Plugin {
             r.put("json", body);
             call.resolve(r);
         }).start();
+    }
+
+    // ---------- copia su Google Drive (o in qualsiasi app di file): l'utente sceglie il file una volta con la finestra di Android,
+    // poi Lydia lo riscrive da sola. Nessun accesso all'account: Android concede il permesso solo su quel file. ----------
+    private static final String BK = "lydia_backup";
+
+    @PluginMethod
+    public void driveLink(PluginCall call) {
+        Intent i = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+        i.addCategory(Intent.CATEGORY_OPENABLE);
+        i.setType("application/json");
+        i.putExtra(Intent.EXTRA_TITLE, call.getString("name", "Lydia_backup.json"));
+        startActivityForResult(call, i, "driveLinked");
+    }
+
+    @ActivityCallback
+    private void driveLinked(PluginCall call, ActivityResult result) {
+        com.getcapacitor.JSObject r = new com.getcapacitor.JSObject();
+        Intent d = result == null ? null : result.getData();
+        Uri u = d == null ? null : d.getData();
+        if (result == null || result.getResultCode() != Activity.RESULT_OK || u == null) {
+            r.put("ok", false);
+            call.resolve(r);
+            return;
+        }
+        Context c = getContext();
+        try {
+            c.getContentResolver().takePersistableUriPermission(u, Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+        } catch (Exception e) { /* alcune app non lo concedono: proverò comunque a scrivere */ }
+        c.getSharedPreferences(BK, Context.MODE_PRIVATE).edit().putString("uri", u.toString()).putLong("last", 0).apply();
+        r.put("ok", true);
+        r.put("name", displayName(c, u));
+        r.put("where", where(u));
+        call.resolve(r);
+    }
+
+    private static String displayName(Context c, Uri u) {
+        android.database.Cursor q = null;
+        try {
+            q = c.getContentResolver().query(u, new String[]{android.provider.OpenableColumns.DISPLAY_NAME}, null, null, null);
+            if (q != null && q.moveToFirst()) return q.getString(0);
+        } catch (Exception e) {
+        } finally {
+            if (q != null) q.close();
+        }
+        return "Lydia_backup.json";
+    }
+
+    private static String where(Uri u) {
+        String a = u.getAuthority() == null ? "" : u.getAuthority();
+        if (a.contains("google.android.apps.docs")) return "Google Drive";
+        if (a.contains("onedrive")) return "OneDrive";
+        if (a.contains("dropbox")) return "Dropbox";
+        if (a.contains("externalstorage") || a.contains("downloads") || a.contains("media")) return "telefono";
+        return "app di file";
+    }
+
+    @PluginMethod
+    public void driveInfo(PluginCall call) {
+        Context c = getContext();
+        android.content.SharedPreferences p = c.getSharedPreferences(BK, Context.MODE_PRIVATE);
+        String s = p.getString("uri", null);
+        com.getcapacitor.JSObject r = new com.getcapacitor.JSObject();
+        r.put("linked", s != null);
+        if (s != null) {
+            Uri u = Uri.parse(s);
+            r.put("name", displayName(c, u));
+            r.put("where", where(u));
+            r.put("last", p.getLong("last", 0));
+            r.put("error", p.getString("err", ""));
+        }
+        call.resolve(r);
+    }
+
+    @PluginMethod
+    public void driveUnlink(PluginCall call) {
+        Context c = getContext();
+        android.content.SharedPreferences p = c.getSharedPreferences(BK, Context.MODE_PRIVATE);
+        String s = p.getString("uri", null);
+        if (s != null) {
+            try {
+                c.getContentResolver().releasePersistableUriPermission(Uri.parse(s), Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+            } catch (Exception e) { }
+        }
+        p.edit().clear().apply();
+        call.resolve();
+    }
+
+    /** Riscrive il file scelto. Se l'app di destinazione non accetta "wt", scrivo e poi taglio la coda. */
+    @PluginMethod
+    public void driveWrite(final PluginCall call) {
+        final String data = call.getString("data", "");
+        final Context c = getContext();
+        new Thread(() -> {
+            android.content.SharedPreferences p = c.getSharedPreferences(BK, Context.MODE_PRIVATE);
+            String s = p.getString("uri", null);
+            com.getcapacitor.JSObject r = new com.getcapacitor.JSObject();
+            if (s == null || data.isEmpty()) {
+                r.put("ok", false);
+                r.put("error", "nessun file");
+                call.resolve(r);
+                return;
+            }
+            Uri u = Uri.parse(s);
+            byte[] b;
+            try { b = data.getBytes("UTF-8"); } catch (Exception e) { b = data.getBytes(); }
+            String err = null;
+            try {
+                java.io.OutputStream o = c.getContentResolver().openOutputStream(u, "wt");
+                if (o == null) throw new java.io.IOException("null");
+                o.write(b);
+                o.flush();
+                o.close();
+            } catch (Exception e1) {
+                try {
+                    android.os.ParcelFileDescriptor fd = c.getContentResolver().openFileDescriptor(u, "rw");
+                    if (fd == null) throw new java.io.IOException("null");
+                    java.io.FileOutputStream fo = new java.io.FileOutputStream(fd.getFileDescriptor());
+                    fo.getChannel().position(0);
+                    fo.write(b);
+                    fo.getChannel().truncate(b.length);
+                    fo.flush();
+                    fo.close();
+                    fd.close();
+                } catch (Exception e2) {
+                    err = (e1 instanceof SecurityException || e2 instanceof SecurityException) ? "permesso" : "scrittura";
+                }
+            }
+            long now = System.currentTimeMillis();
+            if (err == null) p.edit().putLong("last", now).putString("err", "").apply();
+            else p.edit().putString("err", err).apply();
+            r.put("ok", err == null);
+            r.put("time", now);
+            if (err != null) r.put("error", err);
+            call.resolve(r);
+        }).start();
+    }
+
+    // ---------- copia interna per il backup di Android (Impostazioni > Google > Backup) ----------
+    @PluginMethod
+    public void saveSnapshot(final PluginCall call) {
+        final String data = call.getString("data", "");
+        final Context c = getContext();
+        new Thread(() -> {
+            try {
+                java.io.File t = new java.io.File(c.getFilesDir(), "lydia_backup.tmp");
+                java.io.FileOutputStream fo = new java.io.FileOutputStream(t);
+                fo.write(data.getBytes("UTF-8"));
+                fo.getFD().sync();
+                fo.close();
+                java.io.File f = new java.io.File(c.getFilesDir(), "lydia_backup.json");
+                if (!t.renameTo(f)) {
+                    f.delete();
+                    t.renameTo(f);
+                }
+                try { new android.app.backup.BackupManager(c).dataChanged(); } catch (Exception e) { }
+                call.resolve();
+            } catch (Exception e) {
+                call.reject("snapshot");
+            }
+        }).start();
+    }
+
+    @PluginMethod
+    public void readSnapshot(PluginCall call) {
+        com.getcapacitor.JSObject r = new com.getcapacitor.JSObject();
+        try {
+            java.io.File f = new java.io.File(getContext().getFilesDir(), "lydia_backup.json");
+            if (f.exists() && f.length() > 0) {
+                byte[] b = new byte[(int) f.length()];
+                java.io.FileInputStream in = new java.io.FileInputStream(f);
+                int n = 0;
+                while (n < b.length) {
+                    int k = in.read(b, n, b.length - n);
+                    if (k < 0) break;
+                    n += k;
+                }
+                in.close();
+                r.put("json", new String(b, 0, n, "UTF-8"));
+                r.put("time", f.lastModified());
+            }
+        } catch (Exception e) { }
+        call.resolve(r);
     }
 }
