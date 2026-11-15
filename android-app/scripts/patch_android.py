@@ -38,6 +38,19 @@ if 'LydiaWidgetProvider' not in s:
     if 'windowSoftInputMode' not in s:
         s = s.replace('android:name=".MainActivity"', 'android:name=".MainActivity"\n            android:windowSoftInputMode="adjustResize"', 1)
     m.write_text(s, encoding='utf-8')
+# lettore delle notifiche di Google Wallet / Samsung Wallet (solo se l'utente concede l'accesso)
+s = m.read_text(encoding='utf-8')
+if 'LydiaWalletListener' not in s:
+    svc = ('\n        <service android:name=".LydiaWalletListener" android:exported="true"\n'
+           '            android:label="Lydia: spese da Wallet"\n'
+           '            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">\n'
+           '            <intent-filter>\n'
+           '                <action android:name="android.service.notification.NotificationListenerService" />\n'
+           '            </intent-filter>\n'
+           '        </service>\n')
+    i = s.index('</application>')
+    s = s[:i] + svc + '    ' + s[i:]
+    m.write_text(s, encoding='utf-8')
 # impronta per sbloccare l'app
 g = root / 'android' / 'app' / 'build.gradle'
 gs = g.read_text(encoding='utf-8')

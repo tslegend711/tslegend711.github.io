@@ -489,4 +489,92 @@ public class LydiaWidgetPlugin extends Plugin {
         } catch (Exception e) { }
         call.resolve(r);
     }
+
+    // ---------- spese da Wallet (notifiche) ----------
+    private boolean walletAccess() {
+        Context c = getContext();
+        String s = android.provider.Settings.Secure.getString(c.getContentResolver(), "enabled_notification_listeners");
+        return s != null && s.contains(c.getPackageName() + "/");
+    }
+
+    @PluginMethod
+    public void walletStatus(PluginCall call) {
+        android.content.SharedPreferences p = getContext().getSharedPreferences(LydiaWalletListener.PREF, Context.MODE_PRIVATE);
+        com.getcapacitor.JSObject r = new com.getcapacitor.JSObject();
+        r.put("access", walletAccess());
+        r.put("on", p.getBoolean("on", false));
+        r.put("sdk", android.os.Build.VERSION.SDK_INT);
+        call.resolve(r);
+    }
+
+    @PluginMethod
+    public void walletSet(PluginCall call) {
+        android.content.SharedPreferences.Editor e = getContext().getSharedPreferences(LydiaWalletListener.PREF, Context.MODE_PRIVATE).edit();
+        Boolean on = call.getBoolean("on", null);
+        if (on != null) e.putBoolean("on", on);
+        String pk = call.getString("pkgs", null);
+        if (pk != null && !pk.isEmpty()) e.putString("pkgs", pk);
+        e.apply();
+        call.resolve();
+    }
+
+    /** Apre la pagina di Android "Accesso alle notifiche" (su Android 11+ direttamente quella di Lydia). */
+    @PluginMethod
+    public void walletOpenAccess(PluginCall call) {
+        Context c = getContext();
+        try {
+            Intent i;
+            if (android.os.Build.VERSION.SDK_INT >= 30) {
+                i = new Intent("android.settings.NOTIFICATION_LISTENER_DETAIL_SETTINGS");
+                i.putExtra("android.provider.extra.NOTIFICATION_LISTENER_COMPONENT_NAME", new android.content.ComponentName(c, LydiaWalletListener.class).flattenToString());
+            } else i = new Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS");
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            c.startActivity(i);
+        } catch (Exception e) {
+            try {
+                Intent i = new Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS");
+                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                c.startActivity(i);
+            } catch (Exception e2) { call.reject("settings"); return; }
+        }
+        call.resolve();
+    }
+
+    /** Info app: da qui, su Android 13+, si sblocca «Consenti impostazioni con restrizioni». */
+    @PluginMethod
+    public void openAppInfo(PluginCall call) {
+        Context c = getContext();
+        try {
+            Intent i = new Intent("android.settings.APPLICATION_DETAILS_SETTINGS", Uri.parse("package:" + c.getPackageName()));
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            c.startActivity(i);
+            call.resolve();
+        } catch (Exception e) { call.reject("settings"); }
+    }
+
+    @PluginMethod
+    public void walletPending(PluginCall call) {
+        android.content.SharedPreferences p = getContext().getSharedPreferences(LydiaWalletListener.PREF, Context.MODE_PRIVATE);
+        com.getcapacitor.JSObject r = new com.getcapacitor.JSObject();
+        r.put("json", p.getString("queue", "[]"));
+        call.resolve(r);
+    }
+
+    /** Toglie dalla coda le notifiche già lette da Lydia. */
+    @PluginMethod
+    public void walletAck(PluginCall call) {
+        String ids = "," + call.getString("ids", "") + ",";
+        synchronized (LydiaWalletListener.class) {
+            android.content.SharedPreferences p = getContext().getSharedPreferences(LydiaWalletListener.PREF, Context.MODE_PRIVATE);
+            try {
+                org.json.JSONArray q = new org.json.JSONArray(p.getString("queue", "[]")), k = new org.json.JSONArray();
+                for (int i = 0; i < q.length(); i++) {
+                    org.json.JSONObject o = q.getJSONObject(i);
+                    if (!ids.contains("," + o.optString("id") + ",")) k.put(o);
+                }
+                p.edit().putString("queue", k.toString()).apply();
+            } catch (Exception e) { }
+        }
+        call.resolve();
+    }
 }
