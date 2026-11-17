@@ -26,6 +26,18 @@ public class LydiaWidgetProvider extends AppWidgetProvider {
         AppWidgetManager m = AppWidgetManager.getInstance(c);
         for (int id : m.getAppWidgetIds(new ComponentName(c, LydiaWidgetProvider.class))) m.updateAppWidget(id, build(c));
         for (int id : m.getAppWidgetIds(new ComponentName(c, LydiaInvWidgetProvider.class))) m.updateAppWidget(id, LydiaInvWidgetProvider.build(c));
+        for (int id : m.getAppWidgetIds(new ComponentName(c, LydiaWatchWidgetProvider.class))) m.updateAppWidget(id, LydiaWatchWidgetProvider.build(c));
+    }
+
+    /** Opacità dello sfondo scelta in Impostazioni › Widget (0 trasparente, 255 pieno). */
+    static int alpha(Context c) {
+        try {
+            String raw = c.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString("data", "");
+            if (raw == null || raw.length() == 0) return 245;
+            return Math.max(0, Math.min(255, new JSONObject(raw).optInt("wa", 245)));
+        } catch (Exception e) {
+            return 245;
+        }
     }
 
     static JSONObject data(Context c, String key) {
@@ -95,6 +107,7 @@ public class LydiaWidgetProvider extends AppWidgetProvider {
 
     static RemoteViews build(Context c) {
         RemoteViews v = new RemoteViews(c.getPackageName(), R.layout.lydia_widget);
+        v.setInt(R.id.w_bg, "setImageAlpha", alpha(c));
         JSONObject j = data(c, "mov");
         boolean pv = priv(c), hid = hidden(c);
         v.setViewVisibility(R.id.w_eye, pv ? View.VISIBLE : View.GONE);

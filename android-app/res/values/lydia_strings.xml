@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="lydia_widget_desc">Aggiungi spese, entrate e giroconti con un tocco</string>
+    <string name="lydia_watch_widget_desc">I titoli che segui, con prezzo e andamento di oggi</string>
     <string name="lydia_inv_widget_desc">Come vanno i tuoi ETF e le tue azioni</string>
 </resources>

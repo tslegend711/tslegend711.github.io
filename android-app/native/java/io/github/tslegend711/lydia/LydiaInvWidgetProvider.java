@@ -233,6 +233,7 @@ public class LydiaInvWidgetProvider extends AppWidgetProvider {
 
     static RemoteViews buildSmall(Context c) {
         RemoteViews v = new RemoteViews(c.getPackageName(), R.layout.lydia_inv_widget_small);
+        v.setInt(R.id.iv_bg, "setImageAlpha", LydiaWidgetProvider.alpha(c));
         JSONObject j = LydiaWidgetProvider.data(c, "inv");
         boolean pv = LydiaWidgetProvider.priv(c), hid = LydiaWidgetProvider.hidden(c);
         v.setOnClickPendingIntent(R.id.iv_root, LydiaWidgetProvider.link(c, "patrimonio", 20));
@@ -282,6 +283,7 @@ public class LydiaInvWidgetProvider extends AppWidgetProvider {
 
     static RemoteViews buildFull(Context c) {
         RemoteViews v = new RemoteViews(c.getPackageName(), R.layout.lydia_inv_widget);
+        v.setInt(R.id.iv_bg, "setImageAlpha", LydiaWidgetProvider.alpha(c));
         JSONObject j = LydiaWidgetProvider.data(c, "inv");
         boolean pv = LydiaWidgetProvider.priv(c), hid = LydiaWidgetProvider.hidden(c);
         v.setOnClickPendingIntent(R.id.iv_root, LydiaWidgetProvider.link(c, "patrimonio", 20));

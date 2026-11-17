@@ -1,12 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Widget Movimenti, una riga: mese e saldo a sinistra, tre azioni a destra. -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+    <ImageView android:id="@+id/w_bg" android:layout_width="match_parent" android:layout_height="match_parent" android:src="@drawable/lydia_widget_bg" android:scaleType="fitXY" android:importantForAccessibility="no" />
+<LinearLayout
     android:id="@+id/w_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="horizontal"
     android:gravity="center_vertical"
-    android:background="@drawable/lydia_widget_bg"
     android:paddingStart="12dp"
     android:paddingEnd="12dp"
     android:paddingTop="6dp"
@@ -24,3 +27,4 @@
     <TextView android:id="@+id/w_in" android:layout_width="44dp" android:layout_height="44dp" android:layout_marginStart="6dp" android:background="@drawable/lydia_btn_in" android:gravity="center" android:text="+" android:textColor="@color/lydia_w_pos" android:textSize="24sp" android:fontFamily="sans-serif-medium" android:contentDescription="Nuova entrata" />
     <TextView android:id="@+id/w_tr" android:layout_width="44dp" android:layout_height="44dp" android:layout_marginStart="6dp" android:background="@drawable/lydia_btn_tr" android:gravity="center" android:text="⇄" android:textColor="@color/lydia_w_gold" android:textSize="19sp" android:contentDescription="Giroconto" />
 </LinearLayout>
+</FrameLayout>
